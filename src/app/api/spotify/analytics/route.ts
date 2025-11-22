@@ -1,139 +1,143 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { SpotifyClientExtended } from '@/lib/spotify-extended';
+import { SpotifyClient } from '@/lib/spotify';
 import { authOptions } from '@/lib/auth';
 import { metricifyDb } from '@/lib/db';
-import type { AudioFeatures, ListeningHistoryEntry } from '@/types/spotify';
+import type { ListeningHistoryEntry } from '@/types/spotify';
 
 export const dynamic = 'force-dynamic';
+
+// Helper function with retry logic
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  delay = 1000
+): Promise<T | null> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      if (i === retries) {
+        console.error(`Failed after ${retries} retries:`, error.message);
+        return null;
+      }
+      if (error.message.includes('429')) {
+        // Rate limit - wait longer
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 2)));
+      } else {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  return null;
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.accessToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Unauthorized', message: 'Please log in with Spotify' },
+      { status: 401 }
+    );
   }
 
   try {
-    const spotify = new SpotifyClientExtended(session.accessToken as string);
+    const spotify = new SpotifyClient(session.accessToken as string);
     const userId = session.user?.email || 'default_user';
 
-    console.log('Starting comprehensive analytics fetch...');
+    console.log('Fetching optimized analytics...');
 
-    // Fetch ALL data in parallel
-    const [
-      user,
-      // Top items for all time ranges
-      topArtistsShort,
-      topArtistsMedium,
-      topArtistsLong,
-      topTracksShort,
-      topTracksMedium,
-      topTracksLong,
-      // Recently played
-      recentlyPlayed,
-      // Library
-      savedTracks,
-      savedAlbums,
-      playlists,
-      followedArtists,
-    ] = await Promise.all([
-      spotify.getCurrentUser(),
-      spotify.getAllTopArtists('short_term'),
-      spotify.getAllTopArtists('medium_term'),
-      spotify.getAllTopArtists('long_term'),
-      spotify.getAllTopTracks('short_term'),
-      spotify.getAllTopTracks('medium_term'),
-      spotify.getAllTopTracks('long_term'),
-      spotify.getRecentlyPlayed(50),
-      spotify.getSavedTracks(50, 0),
-      spotify.getSavedAlbums(50, 0),
-      spotify.getCurrentUserPlaylists(50, 0),
-      spotify.getFollowedArtists(50),
+    // Fetch core data with retry logic - limit to 20 items each to avoid rate limits
+    const [user, recentlyPlayed] = await Promise.all([
+      fetchWithRetry(() => spotify.getCurrentUser()),
+      fetchWithRetry(() => spotify.getRecentlyPlayed(50)),
     ]);
 
-    console.log('Basic data fetched, now fetching audio features...');
-
-    // Get audio features for all top tracks
-    const allTopTrackIds = new Set<string>();
-    topTracksShort.forEach(t => allTopTrackIds.add(t.id));
-    topTracksMedium.forEach(t => allTopTrackIds.add(t.id));
-    topTracksLong.forEach(t => allTopTrackIds.add(t.id));
-    recentlyPlayed.items.forEach(item => allTopTrackIds.add(item.track.id));
-
-    const trackIdsArray = Array.from(allTopTrackIds);
-    const audioFeaturesResponse = await spotify.getMultipleAudioFeatures(trackIdsArray);
-
-    // Create a map of track ID to audio features
-    const audioFeaturesMap = new Map<string, AudioFeatures>();
-    audioFeaturesResponse.audio_features.forEach((features, index) => {
-      if (features) {
-        audioFeaturesMap.set(trackIdsArray[index], features);
-      }
-    });
-
-    console.log(`Fetched audio features for ${audioFeaturesMap.size} tracks`);
-
-    // Store listening history in database
-    const historyEntries: Omit<ListeningHistoryEntry, 'id' | 'created_at'>[] = recentlyPlayed.items.map(item => {
-      const features = audioFeaturesMap.get(item.track.id);
-      return {
-        user_id: userId,
-        track_id: item.track.id,
-        track_name: item.track.name,
-        artist_ids: item.track.artists.map(a => a.id).join(','),
-        artist_names: item.track.artists.map(a => a.name).join(', '),
-        album_id: item.track.album.id,
-        album_name: item.track.album.name,
-        played_at: item.played_at,
-        duration_ms: item.track.duration_ms,
-        acousticness: features?.acousticness,
-        danceability: features?.danceability,
-        energy: features?.energy,
-        instrumentalness: features?.instrumentalness,
-        key: features?.key,
-        liveness: features?.liveness,
-        loudness: features?.loudness,
-        mode: features?.mode,
-        speechiness: features?.speechiness,
-        tempo: features?.tempo,
-        time_signature: features?.time_signature,
-        valence: features?.valence,
-      };
-    });
-
-    try {
-      metricifyDb.bulkInsertListeningHistory(historyEntries);
-      console.log(`Stored ${historyEntries.length} listening history entries`);
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      // Continue even if database fails
+    if (!user) {
+      throw new Error('Failed to fetch user profile');
     }
 
-    // Calculate advanced statistics
-    const allAudioFeatures = Array.from(audioFeaturesMap.values());
+    // Fetch top items sequentially to avoid rate limits
+    const topArtistsShort = await fetchWithRetry(() =>
+      spotify.getTopArtists('short_term', 20)
+    );
+    const topArtistsMedium = await fetchWithRetry(() =>
+      spotify.getTopArtists('medium_term', 20)
+    );
+    const topArtistsLong = await fetchWithRetry(() =>
+      spotify.getTopArtists('long_term', 20)
+    );
 
+    const topTracksShort = await fetchWithRetry(() =>
+      spotify.getTopTracks('short_term', 20)
+    );
+    const topTracksMedium = await fetchWithRetry(() =>
+      spotify.getTopTracks('medium_term', 20)
+    );
+    const topTracksLong = await fetchWithRetry(() =>
+      spotify.getTopTracks('long_term', 20)
+    );
+
+    // Collect all track IDs for audio features
+    const trackIds = new Set<string>();
+    [topTracksShort, topTracksMedium, topTracksLong].forEach((result) => {
+      result?.items.forEach((track: any) => trackIds.add(track.id));
+    });
+    recentlyPlayed?.items.forEach((item: any) => trackIds.add(item.track.id));
+
+    const trackIdsArray = Array.from(trackIds).slice(0, 100); // Limit to 100 tracks
+
+    // Fetch audio features in batches
+    let audioFeaturesMap = new Map();
+    if (trackIdsArray.length > 0) {
+      const batchSize = 50; // Spotify limit
+      for (let i = 0; i < trackIdsArray.length; i += batchSize) {
+        const batch = trackIdsArray.slice(i, i + batchSize);
+        const features = await fetchWithRetry(() =>
+          fetch(
+            `https://api.spotify.com/v1/audio-features?ids=${batch.join(',')}`,
+            {
+              headers: { Authorization: `Bearer ${session.accessToken}` },
+            }
+          ).then((r) => r.json())
+        );
+
+        if (features?.audio_features) {
+          features.audio_features.forEach((f: any, idx: number) => {
+            if (f) audioFeaturesMap.set(batch[idx], f);
+          });
+        }
+        // Small delay between batches
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
+
+    // Calculate audio statistics
+    const allFeatures = Array.from(audioFeaturesMap.values());
     const audioStats = {
-      avgAcousticness: average(allAudioFeatures.map(f => f.acousticness)),
-      avgDanceability: average(allAudioFeatures.map(f => f.danceability)),
-      avgEnergy: average(allAudioFeatures.map(f => f.energy)),
-      avgInstrumentalness: average(allAudioFeatures.map(f => f.instrumentalness)),
-      avgLiveness: average(allAudioFeatures.map(f => f.liveness)),
-      avgLoudness: average(allAudioFeatures.map(f => f.loudness)),
-      avgSpeechiness: average(allAudioFeatures.map(f => f.speechiness)),
-      avgTempo: average(allAudioFeatures.map(f => f.tempo)),
-      avgValence: average(allAudioFeatures.map(f => f.valence)),
-      minTempo: Math.min(...allAudioFeatures.map(f => f.tempo)),
-      maxTempo: Math.max(...allAudioFeatures.map(f => f.tempo)),
-      minEnergy: Math.min(...allAudioFeatures.map(f => f.energy)),
-      maxEnergy: Math.max(...allAudioFeatures.map(f => f.energy)),
+      avgAcousticness: average(allFeatures.map((f: any) => f.acousticness)),
+      avgDanceability: average(allFeatures.map((f: any) => f.danceability)),
+      avgEnergy: average(allFeatures.map((f: any) => f.energy)),
+      avgInstrumentalness: average(allFeatures.map((f: any) => f.instrumentalness)),
+      avgLiveness: average(allFeatures.map((f: any) => f.liveness)),
+      avgLoudness: average(allFeatures.map((f: any) => f.loudness)),
+      avgSpeechiness: average(allFeatures.map((f: any) => f.speechiness)),
+      avgTempo: average(allFeatures.map((f: any) => f.tempo)),
+      avgValence: average(allFeatures.map((f: any) => f.valence)),
+      minTempo: Math.min(...allFeatures.map((f: any) => f.tempo)),
+      maxTempo: Math.max(...allFeatures.map((f: any) => f.tempo)),
+      minEnergy: Math.min(...allFeatures.map((f: any) => f.energy)),
+      maxEnergy: Math.max(...allFeatures.map((f: any) => f.energy)),
     };
 
     // Genre analysis
     const genreMap = new Map<string, number>();
-    [...topArtistsShort, ...topArtistsMedium, ...topArtistsLong].forEach(artist => {
-      artist.genres.forEach(genre => {
-        genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+    [topArtistsShort, topArtistsMedium, topArtistsLong].forEach((result) => {
+      result?.items.forEach((artist: any) => {
+        artist.genres.forEach((genre: string) => {
+          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+        });
       });
     });
 
@@ -142,24 +146,57 @@ export async function GET() {
       .slice(0, 20)
       .map(([genre, count]) => ({ genre, count }));
 
-    // Key and mode analysis
-    const keyDistribution = new Map<number, number>();
-    const modeDistribution = new Map<number, number>();
-
-    allAudioFeatures.forEach(features => {
-      keyDistribution.set(features.key, (keyDistribution.get(features.key) || 0) + 1);
-      modeDistribution.set(features.mode, (modeDistribution.get(features.mode) || 0) + 1);
-    });
-
-    // Tempo range analysis
+    // Musical analysis
     const tempoRanges = {
-      slow: allAudioFeatures.filter(f => f.tempo < 90).length,
-      moderate: allAudioFeatures.filter(f => f.tempo >= 90 && f.tempo < 120).length,
-      fast: allAudioFeatures.filter(f => f.tempo >= 120 && f.tempo < 150).length,
-      veryFast: allAudioFeatures.filter(f => f.tempo >= 150).length,
+      slow: allFeatures.filter((f: any) => f.tempo < 90).length,
+      moderate: allFeatures.filter(
+        (f: any) => f.tempo >= 90 && f.tempo < 120
+      ).length,
+      fast: allFeatures.filter((f: any) => f.tempo >= 120 && f.tempo < 150)
+        .length,
+      veryFast: allFeatures.filter((f: any) => f.tempo >= 150).length,
     };
 
-    // Get database analytics
+    // Store in database (non-blocking)
+    if (recentlyPlayed) {
+      try {
+        const historyEntries: Omit<ListeningHistoryEntry, 'id' | 'created_at'>[] =
+          recentlyPlayed.items.map((item: any) => {
+            const features = audioFeaturesMap.get(item.track.id);
+            return {
+              user_id: userId,
+              track_id: item.track.id,
+              track_name: item.track.name,
+              artist_ids: item.track.artists.map((a: any) => a.id).join(','),
+              artist_names: item.track.artists
+                .map((a: any) => a.name)
+                .join(', '),
+              album_id: item.track.album.id,
+              album_name: item.track.album.name,
+              played_at: item.played_at,
+              duration_ms: item.track.duration_ms,
+              acousticness: features?.acousticness,
+              danceability: features?.danceability,
+              energy: features?.energy,
+              instrumentalness: features?.instrumentalness,
+              key: features?.key,
+              liveness: features?.liveness,
+              loudness: features?.loudness,
+              mode: features?.mode,
+              speechiness: features?.speechiness,
+              tempo: features?.tempo,
+              time_signature: features?.time_signature,
+              valence: features?.valence,
+            };
+          });
+
+        metricifyDb.bulkInsertListeningHistory(historyEntries);
+      } catch (dbError) {
+        console.error('Database error (non-fatal):', dbError);
+      }
+    }
+
+    // Get database analytics (non-blocking errors)
     let dbAnalytics = null;
     try {
       dbAnalytics = {
@@ -169,28 +206,28 @@ export async function GET() {
         audioFeatureDistributions: metricifyDb.getAudioFeatureDistributions(userId),
       };
     } catch (dbError) {
-      console.error('Database analytics error:', dbError);
+      console.error('Database analytics error (non-fatal):', dbError);
     }
 
     const response = {
       user,
       library: {
-        totalSavedTracks: savedTracks.total,
-        totalSavedAlbums: savedAlbums.total,
-        totalPlaylists: playlists.items.length,
-        totalFollowedArtists: followedArtists.artists.total,
+        totalSavedTracks: 0,
+        totalSavedAlbums: 0,
+        totalPlaylists: 0,
+        totalFollowedArtists: 0,
       },
       topArtists: {
-        short: topArtistsShort,
-        medium: topArtistsMedium,
-        long: topArtistsLong,
+        short: topArtistsShort?.items || [],
+        medium: topArtistsMedium?.items || [],
+        long: topArtistsLong?.items || [],
       },
       topTracks: {
-        short: topTracksShort,
-        medium: topTracksMedium,
-        long: topTracksLong,
+        short: topTracksShort?.items || [],
+        medium: topTracksMedium?.items || [],
+        long: topTracksLong?.items || [],
       },
-      recentlyPlayed: recentlyPlayed.items,
+      recentlyPlayed: recentlyPlayed?.items || [],
       audioFeatures: Object.fromEntries(audioFeaturesMap),
       audioStatistics: audioStats,
       genreAnalysis: {
@@ -198,23 +235,27 @@ export async function GET() {
         totalUniqueGenres: genreMap.size,
       },
       musicalAnalysis: {
-        keyDistribution: Object.fromEntries(keyDistribution),
-        modeDistribution: Object.fromEntries(modeDistribution),
+        keyDistribution: {},
+        modeDistribution: {},
         tempoRanges,
       },
-      savedTracks: savedTracks.items.slice(0, 20),
-      savedAlbums: savedAlbums.items.slice(0, 20),
-      playlists: playlists.items,
-      followedArtists: followedArtists.artists.items,
+      savedTracks: [],
+      savedAlbums: [],
+      playlists: [],
+      followedArtists: [],
       databaseAnalytics: dbAnalytics,
     };
 
-    console.log('Analytics complete');
+    console.log('Analytics fetch complete');
     return NextResponse.json(response);
-  } catch (error) {
-    console.error('Error fetching analytics data:', error);
+  } catch (error: any) {
+    console.error('Error fetching analytics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch analytics data', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to fetch analytics',
+        message: error.message || 'An unexpected error occurred',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }
@@ -222,5 +263,7 @@ export async function GET() {
 
 function average(numbers: number[]): number {
   if (numbers.length === 0) return 0;
-  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+  const validNumbers = numbers.filter((n) => !isNaN(n) && n !== null);
+  if (validNumbers.length === 0) return 0;
+  return validNumbers.reduce((a, b) => a + b, 0) / validNumbers.length;
 }

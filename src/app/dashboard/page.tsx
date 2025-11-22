@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   Box,
   Container,
-  Grid,
-  Heading,
   Spinner,
   VStack,
   Text,
@@ -18,36 +16,28 @@ import {
   TabPanel,
   Flex,
   Avatar,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  SimpleGrid,
+  Badge,
+  useColorModeValue,
 } from '@chakra-ui/react';
-import { SpotifyUser, SpotifyArtist, SpotifyTrack, RecentlyPlayed } from '@/types/spotify';
-import TopArtists from '@/components/dashboard/TopArtists';
-import TopTracks from '@/components/dashboard/TopTracks';
-import RecentlyPlayedTracks from '@/components/dashboard/RecentlyPlayedTracks';
-import GenreDistribution from '@/components/dashboard/GenreDistribution';
-import ListeningStats from '@/components/dashboard/ListeningStats';
 
-interface DashboardData {
-  user: SpotifyUser;
-  topArtistsShort: SpotifyArtist[];
-  topArtistsMedium: SpotifyArtist[];
-  topArtistsLong: SpotifyArtist[];
-  topTracksShort: SpotifyTrack[];
-  topTracksMedium: SpotifyTrack[];
-  topTracksLong: SpotifyTrack[];
-  recentlyPlayed: RecentlyPlayed[];
-}
+// Import tab components
+import OverviewTab from '@/components/dashboard/tabs/OverviewTab';
+import AudioFeaturesTab from '@/components/dashboard/tabs/AudioFeaturesTab';
+import GenreAnalysisTab from '@/components/dashboard/tabs/GenreAnalysisTab';
+import ListeningHistoryTab from '@/components/dashboard/tabs/ListeningHistoryTab';
+import LibraryTab from '@/components/dashboard/tabs/LibraryTab';
+import TopArtistsTab from '@/components/dashboard/tabs/TopArtistsTab';
+import TopTracksTab from '@/components/dashboard/tabs/TopTracksTab';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const tabBg = useColorModeValue('whiteAlpha.100', 'whiteAlpha.100');
+  const selectedTabBg = useColorModeValue('spotify.green', 'spotify.green');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -57,21 +47,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetchDashboardData();
+      fetchAnalyticsData();
     }
   }, [status]);
 
-  const fetchDashboardData = async () => {
+  const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/spotify/dashboard');
+      const response = await fetch('/api/spotify/analytics');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        throw new Error('Failed to fetch analytics data');
       }
 
-      const dashboardData = await response.json();
-      setData(dashboardData);
+      const data = await response.json();
+      setAnalyticsData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -84,7 +74,10 @@ export default function DashboardPage() {
       <Container maxW="container.xl" py={20}>
         <VStack spacing={4}>
           <Spinner size="xl" color="spotify.green" thickness="4px" />
-          <Text>Loading your Spotify stats...</Text>
+          <Text fontSize="lg">Loading your comprehensive analytics...</Text>
+          <Text fontSize="sm" color="gray.500">
+            Fetching audio features, genre data, and listening patterns
+          </Text>
         </VStack>
       </Container>
     );
@@ -97,103 +90,219 @@ export default function DashboardPage() {
           <Text color="red.400" fontSize="xl">
             Error: {error}
           </Text>
+          <Text color="gray.400">
+            Try refreshing the page or logging in again
+          </Text>
         </VStack>
       </Container>
     );
   }
 
-  if (!data) {
+  if (!analyticsData) {
     return null;
   }
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
+    <Box minH="100vh" pb={10}>
+      <Container maxW="container.xl" pt={6}>
         {/* User Profile Header */}
-        <Flex align="center" gap={6} p={6} bg="whiteAlpha.100" borderRadius="xl">
+        <Flex
+          align="center"
+          gap={6}
+          p={6}
+          mb={6}
+          bg="whiteAlpha.100"
+          borderRadius="2xl"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          position="relative"
+          overflow="hidden"
+          _before={{
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            bgGradient: 'linear(to-r, spotify.green, green.400)',
+          }}
+        >
           <Avatar
             size="xl"
-            name={data.user.display_name}
-            src={data.user.images[0]?.url}
+            name={analyticsData.user.display_name}
+            src={analyticsData.user.images[0]?.url}
+            border="3px solid"
+            borderColor="spotify.green"
           />
-          <Box>
-            <Heading size="lg" mb={2}>
-              Welcome back, {data.user.display_name}!
-            </Heading>
-            <Text color="gray.400">
-              {data.user.followers.total.toLocaleString()} followers on Spotify
+          <Box flex={1}>
+            <Flex align="center" gap={3} mb={2}>
+              <Text fontSize="2xl" fontWeight="bold">
+                {analyticsData.user.display_name}
+              </Text>
+              <Badge colorScheme="green" fontSize="sm" px={3} py={1} borderRadius="full">
+                Premium Analytics
+              </Badge>
+            </Flex>
+            <Text color="gray.400" fontSize="sm">
+              {analyticsData.user.followers.total.toLocaleString()} Spotify followers
             </Text>
           </Box>
+          <VStack align="end" spacing={1}>
+            <Text fontSize="sm" color="gray.500">
+              Library Size
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" color="spotify.green">
+              {analyticsData.library.totalSavedTracks.toLocaleString()}
+            </Text>
+            <Text fontSize="xs" color="gray.500">
+              saved tracks
+            </Text>
+          </VStack>
         </Flex>
 
-        {/* Listening Statistics Overview */}
-        <ListeningStats
-          topArtists={data.topArtistsMedium}
-          topTracks={data.topTracksMedium}
-          recentlyPlayed={data.recentlyPlayed}
-        />
+        {/* Main Tabs */}
+        <Tabs
+          variant="soft-rounded"
+          colorScheme="green"
+          isLazy
+          lazyBehavior="keepMounted"
+        >
+          <TabList
+            mb={6}
+            p={2}
+            bg="whiteAlpha.50"
+            borderRadius="xl"
+            overflowX="auto"
+            css={{
+              '&::-webkit-scrollbar': {
+                height: '6px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(29, 185, 84, 0.3)',
+                borderRadius: '3px',
+              },
+            }}
+          >
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              📊 Overview
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              🎵 Audio Features
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              🎸 Genre Analysis
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              🎤 Top Artists
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              🎧 Top Tracks
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              📅 Listening History
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              💿 Library
+            </Tab>
+          </TabList>
 
-        {/* Genre Distribution */}
-        <GenreDistribution artists={data.topArtistsMedium} />
+          <TabPanels>
+            <TabPanel p={0}>
+              <OverviewTab data={analyticsData} />
+            </TabPanel>
 
-        {/* Top Artists with Time Range Tabs */}
-        <Box>
-          <Heading size="md" mb={4}>
-            Your Top Artists
-          </Heading>
-          <Tabs variant="soft-rounded" colorScheme="green">
-            <TabList mb={4}>
-              <Tab>Last 4 Weeks</Tab>
-              <Tab>Last 6 Months</Tab>
-              <Tab>All Time</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel p={0}>
-                <TopArtists artists={data.topArtistsShort} />
-              </TabPanel>
-              <TabPanel p={0}>
-                <TopArtists artists={data.topArtistsMedium} />
-              </TabPanel>
-              <TabPanel p={0}>
-                <TopArtists artists={data.topArtistsLong} />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Box>
+            <TabPanel p={0}>
+              <AudioFeaturesTab data={analyticsData} />
+            </TabPanel>
 
-        {/* Top Tracks with Time Range Tabs */}
-        <Box>
-          <Heading size="md" mb={4}>
-            Your Top Tracks
-          </Heading>
-          <Tabs variant="soft-rounded" colorScheme="green">
-            <TabList mb={4}>
-              <Tab>Last 4 Weeks</Tab>
-              <Tab>Last 6 Months</Tab>
-              <Tab>All Time</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel p={0}>
-                <TopTracks tracks={data.topTracksShort} />
-              </TabPanel>
-              <TabPanel p={0}>
-                <TopTracks tracks={data.topTracksMedium} />
-              </TabPanel>
-              <TabPanel p={0}>
-                <TopTracks tracks={data.topTracksLong} />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-        </Box>
+            <TabPanel p={0}>
+              <GenreAnalysisTab data={analyticsData} />
+            </TabPanel>
 
-        {/* Recently Played */}
-        <Box>
-          <Heading size="md" mb={4}>
-            Recently Played
-          </Heading>
-          <RecentlyPlayedTracks tracks={data.recentlyPlayed} />
-        </Box>
-      </VStack>
-    </Container>
+            <TabPanel p={0}>
+              <TopArtistsTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <TopTracksTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <ListeningHistoryTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <LibraryTab data={analyticsData} />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Container>
+    </Box>
   );
 }
