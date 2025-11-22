@@ -30,7 +30,7 @@ A visually stunning dashboard for visualizing your Spotify listening metrics, ex
 
 ## Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 18+ and npm/yarn (or Docker as an alternative)
 - A Spotify account (free or premium)
 - Spotify Developer credentials
 
@@ -43,13 +43,7 @@ git clone <repository-url>
 cd Metricify
 ```
 
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Set Up Spotify Developer Application
+### 2. Set Up Spotify Developer Application
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Click "Create an App"
@@ -59,7 +53,7 @@ npm install
    - **Redirect URI**: `http://localhost:3000/api/auth/callback/spotify`
 4. After creating, note your **Client ID** and **Client Secret**
 
-### 4. Configure Environment Variables
+### 3. Configure Environment Variables
 
 Copy the example environment file:
 
@@ -70,10 +64,11 @@ cp .env.example .env.local
 Edit `.env.local` and add your Spotify credentials:
 
 ```env
-SPOTIFY_CLIENT_ID=your_client_id_here
-SPOTIFY_CLIENT_SECRET=your_client_secret_here
-NEXTAUTH_SECRET=generate_a_random_secret
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+NEXTAUTH_SECRET=your_nextauth_secret_here
 NEXTAUTH_URL=http://localhost:3000
+NODE_ENV=development
 ```
 
 Generate a secure `NEXTAUTH_SECRET`:
@@ -82,13 +77,35 @@ Generate a secure `NEXTAUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-### 5. Run the Development Server
+### 4. Choose Your Setup Method
 
+#### Option A: Standard Node.js Setup (Recommended for Development)
+
+**Install dependencies:**
+```bash
+npm install
+```
+
+**Run the development server:**
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+#### Option B: Docker Setup
+
+**Build and run with Docker Compose:**
+```bash
+docker-compose up
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000).
+
+**To stop the Docker container:**
+```bash
+docker-compose down
+```
 
 ## Project Structure
 
@@ -120,6 +137,40 @@ metricify/
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
+
+## Troubleshooting
+
+### Clean Start (Reset Everything)
+
+If you encounter issues, you can completely reset the application:
+
+**1. Stop running processes:**
+```bash
+docker-compose down  # If using Docker
+```
+
+**2. Remove all build artifacts:**
+```bash
+rm -rf .next node_modules package-lock.json
+```
+
+**3. Clean Docker artifacts (if applicable):**
+```bash
+docker rmi metricify-metricify:latest
+docker container prune -f
+```
+
+**4. Fresh install:**
+```bash
+npm install
+npm run dev
+```
+
+### Common Issues
+
+- **Port 3000 already in use**: Stop any other services running on port 3000 or change the port in `package.json`
+- **Spotify OAuth errors**: Verify your redirect URI in the Spotify Developer Dashboard matches exactly: `http://localhost:3000/api/auth/callback/spotify`
+- **Environment variables not loading**: Ensure `.env.local` exists and has no syntax errors
 
 ## Spotify API Scopes
 
