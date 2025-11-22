@@ -93,82 +93,189 @@ export async function GET() {
       spotify.getFollowedArtists(50)
     );
 
-    // Collect all track IDs for audio features
+    // Collect all track IDs for audio features (filter out null/undefined/invalid IDs)
     const trackIds = new Set<string>();
     [topTracksShort, topTracksMedium, topTracksLong].forEach((result) => {
-      result?.items.forEach((track: any) => trackIds.add(track.id));
+      result?.items.forEach((track: any) => {
+        if (track?.id && typeof track.id === 'string' && track.id.length > 0) {
+          trackIds.add(track.id);
+        }
+      });
     });
-    recentlyPlayed?.items.forEach((item: any) => trackIds.add(item.track.id));
+    recentlyPlayed?.items.forEach((item: any) => {
+      if (item?.track?.id && typeof item.track.id === 'string' && item.track.id.length > 0) {
+        trackIds.add(item.track.id);
+      }
+    });
 
-    const trackIdsArray = Array.from(trackIds).slice(0, 100); // Limit to 100 tracks
+    const trackIdsArray = Array.from(trackIds).filter(id => id && id.length > 0).slice(0, 100); // Limit to 100 valid tracks
+
+    console.log(`Collected ${trackIdsArray.length} unique track IDs from top tracks and recently played`);
 
     // Fetch audio features in batches
     let audioFeaturesMap = new Map();
+    let nullCount = 0;
+    let successCount = 0;
+
+    console.log(`Fetching audio features for ${trackIdsArray.length} tracks...`);
+
     if (trackIdsArray.length > 0) {
-      const batchSize = 50; // Spotify limit
+      const batchSize = 100; // Spotify allows up to 100 IDs per request
       for (let i = 0; i < trackIdsArray.length; i += batchSize) {
         const batch = trackIdsArray.slice(i, i + batchSize);
-        const features = await fetchWithRetry(() =>
-          fetch(
+
+        try {
+          const response = await fetch(
             `https://api.spotify.com/v1/audio-features?ids=${batch.join(',')}`,
             {
               headers: { Authorization: `Bearer ${session.accessToken}` },
             }
-          ).then((r) => r.json())
-        );
+          );
 
-        if (features?.audio_features) {
-          features.audio_features.forEach((f: any, idx: number) => {
-            if (f) audioFeaturesMap.set(batch[idx], f);
-          });
+          if (!response.ok) {
+            console.error(`Audio features batch ${i}-${i + batch.length} failed:`, response.status, response.statusText);
+            continue;
+          }
+
+          const features = await response.json();
+
+          if (features?.audio_features && Array.isArray(features.audio_features)) {
+            features.audio_features.forEach((f: any, idx: number) => {
+              if (f && f.id) {
+                // Validate that the feature object has the required fields
+                if (typeof f.tempo === 'number' && typeof f.energy === 'number') {
+                  audioFeaturesMap.set(batch[idx], f);
+                  successCount++;
+                } else {
+                  console.warn(`Track ${batch[idx]} has incomplete audio features:`, f);
+                  nullCount++;
+                }
+              } else {
+                nullCount++;
+                console.warn(`No audio features for track ${batch[idx]}`);
+              }
+            });
+          }
+        } catch (error: any) {
+          console.error(`Error fetching audio features batch ${i}:`, error.message);
         }
-        // Small delay between batches
-        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Small delay between batches to avoid rate limiting
+        if (i + batchSize < trackIdsArray.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
     }
 
-    // Calculate audio statistics
-    const allFeatures = Array.from(audioFeaturesMap.values());
+    console.log(`Audio features: ${successCount} successful, ${nullCount} null/invalid out of ${trackIdsArray.length} requested`);
+
+    // Calculate audio statistics with comprehensive validation
+    const allFeatures = Array.from(audioFeaturesMap.values()).filter((f: any) => {
+      return f !== null &&
+             f !== undefined &&
+             typeof f === 'object' &&
+             typeof f.tempo === 'number' &&
+             typeof f.energy === 'number';
+    });
+
+    console.log(`Calculating stats from ${allFeatures.length} validated audio features`);
+
+    // Extract and validate all numeric features
+    const tempos = allFeatures.map((f: any) => f.tempo).filter((t: number) => !isNaN(t) && t > 0 && t < 300);
+    const energies = allFeatures.map((f: any) => f.energy).filter((e: number) => !isNaN(e) && e >= 0 && e <= 1);
+    const danceabilities = allFeatures.map((f: any) => f.danceability).filter((d: number) => !isNaN(d) && d >= 0 && d <= 1);
+    const valences = allFeatures.map((f: any) => f.valence).filter((v: number) => !isNaN(v) && v >= 0 && v <= 1);
+    const acousticnesses = allFeatures.map((f: any) => f.acousticness).filter((a: number) => !isNaN(a) && a >= 0 && a <= 1);
+
     const audioStats = {
-      avgAcousticness: average(allFeatures.map((f: any) => f.acousticness)),
-      avgDanceability: average(allFeatures.map((f: any) => f.danceability)),
-      avgEnergy: average(allFeatures.map((f: any) => f.energy)),
-      avgInstrumentalness: average(allFeatures.map((f: any) => f.instrumentalness)),
-      avgLiveness: average(allFeatures.map((f: any) => f.liveness)),
-      avgLoudness: average(allFeatures.map((f: any) => f.loudness)),
-      avgSpeechiness: average(allFeatures.map((f: any) => f.speechiness)),
-      avgTempo: average(allFeatures.map((f: any) => f.tempo)),
-      avgValence: average(allFeatures.map((f: any) => f.valence)),
-      minTempo: Math.min(...allFeatures.map((f: any) => f.tempo)),
-      maxTempo: Math.max(...allFeatures.map((f: any) => f.tempo)),
-      minEnergy: Math.min(...allFeatures.map((f: any) => f.energy)),
-      maxEnergy: Math.max(...allFeatures.map((f: any) => f.energy)),
+      avgAcousticness: average(acousticnesses),
+      avgDanceability: average(danceabilities),
+      avgEnergy: average(energies),
+      avgInstrumentalness: average(allFeatures.map((f: any) => f.instrumentalness).filter((i: number) => !isNaN(i))),
+      avgLiveness: average(allFeatures.map((f: any) => f.liveness).filter((l: number) => !isNaN(l))),
+      avgLoudness: average(allFeatures.map((f: any) => f.loudness).filter((l: number) => !isNaN(l))),
+      avgSpeechiness: average(allFeatures.map((f: any) => f.speechiness).filter((s: number) => !isNaN(s))),
+      avgTempo: average(tempos),
+      avgValence: average(valences),
+      minTempo: tempos.length > 0 ? Math.min(...tempos) : 0,
+      maxTempo: tempos.length > 0 ? Math.max(...tempos) : 0,
+      minEnergy: energies.length > 0 ? Math.min(...energies) : 0,
+      maxEnergy: energies.length > 0 ? Math.max(...energies) : 0,
+      totalTracksAnalyzed: allFeatures.length,
+      validTempos: tempos.length,
+      validEnergies: energies.length,
+      validDanceabilities: danceabilities.length,
     };
 
-    // Genre analysis
-    const genreMap = new Map<string, number>();
+    console.log('Audio stats calculated:', {
+      totalFeatures: allFeatures.length,
+      avgTempo: audioStats.avgTempo,
+      avgEnergy: audioStats.avgEnergy,
+      avgDanceability: audioStats.avgDanceability,
+      validTempos: audioStats.validTempos,
+      validEnergies: audioStats.validEnergies,
+    });
+
+    // Genre analysis with artist mapping
+    const genreMap = new Map<string, { count: number; artists: Set<string> }>();
     [topArtistsShort, topArtistsMedium, topArtistsLong].forEach((result) => {
       result?.items.forEach((artist: any) => {
         artist.genres.forEach((genre: string) => {
-          genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
+          const existing = genreMap.get(genre) || { count: 0, artists: new Set<string>() };
+          existing.count += 1;
+          existing.artists.add(artist.name);
+          genreMap.set(genre, existing);
         });
       });
     });
 
     const topGenres = Array.from(genreMap.entries())
-      .sort((a, b) => b[1] - a[1])
+      .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 20)
-      .map(([genre, count]) => ({ genre, count }));
+      .map(([genre, data]) => ({
+        genre,
+        count: data.count,
+        artists: Array.from(data.artists)
+      }));
 
-    // Musical analysis
+    // Musical analysis - Key and Mode distributions
+    const keyMap = new Map<number, number>();
+    const modeMap = new Map<number, number>();
+
+    allFeatures.forEach((f: any) => {
+      if (f.key !== null && f.key !== undefined && f.key >= 0) {
+        keyMap.set(f.key, (keyMap.get(f.key) || 0) + 1);
+      }
+      if (f.mode !== null && f.mode !== undefined) {
+        modeMap.set(f.mode, (modeMap.get(f.mode) || 0) + 1);
+      }
+    });
+
+    const keyNames = ['C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭', 'A', 'A♯/B♭', 'B'];
+    const keyDistribution = Array.from(keyMap.entries())
+      .map(([key, count]) => ({ key: keyNames[key] || 'Unknown', count }))
+      .sort((a, b) => b.count - a.count);
+
+    const totalModes = (modeMap.get(1) || 0) + (modeMap.get(0) || 0);
+    const modeDistribution = {
+      major: modeMap.get(1) || 0,
+      minor: modeMap.get(0) || 0,
+      majorPercentage: totalModes > 0 ? ((modeMap.get(1) || 0) / totalModes) * 100 : 0,
+      minorPercentage: totalModes > 0 ? ((modeMap.get(0) || 0) / totalModes) * 100 : 0,
+    };
+
+    const slowCount = allFeatures.filter((f: any) => f.tempo && f.tempo < 90).length;
+    const moderateCount = allFeatures.filter((f: any) => f.tempo && f.tempo >= 90 && f.tempo < 120).length;
+    const fastCount = allFeatures.filter((f: any) => f.tempo && f.tempo >= 120 && f.tempo < 150).length;
+    const veryFastCount = allFeatures.filter((f: any) => f.tempo && f.tempo >= 150).length;
+    const totalTempoTracks = slowCount + moderateCount + fastCount + veryFastCount;
+
     const tempoRanges = {
-      slow: allFeatures.filter((f: any) => f.tempo < 90).length,
-      moderate: allFeatures.filter(
-        (f: any) => f.tempo >= 90 && f.tempo < 120
-      ).length,
-      fast: allFeatures.filter((f: any) => f.tempo >= 120 && f.tempo < 150)
-        .length,
-      veryFast: allFeatures.filter((f: any) => f.tempo >= 150).length,
+      slow: slowCount,
+      moderate: moderateCount,
+      fast: fastCount,
+      veryFast: veryFastCount,
+      total: totalTempoTracks,
     };
 
     // Store in database (non-blocking)
@@ -249,8 +356,8 @@ export async function GET() {
         totalUniqueGenres: genreMap.size,
       },
       musicalAnalysis: {
-        keyDistribution: {},
-        modeDistribution: {},
+        keyDistribution,
+        modeDistribution,
         tempoRanges,
       },
       savedTracks: savedTracks?.items || [],

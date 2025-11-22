@@ -20,9 +20,13 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ data }: OverviewTabProps) {
-  const audioStats = data.audioStatistics || {};
-  const genreAnalysis = data.genreAnalysis || {};
-  const musicalAnalysis = data.musicalAnalysis || {};
+  const audioStats = data?.audioStatistics || {};
+  const genreAnalysis = data?.genreAnalysis || {};
+  const musicalAnalysis = data?.musicalAnalysis || {};
+
+  // Debug logging
+  console.log('OverviewTab audioStats:', audioStats);
+  console.log('OverviewTab data.library:', data?.library);
 
   return (
     <VStack spacing={6} align="stretch">
@@ -111,10 +115,30 @@ export default function OverviewTab({ data }: OverviewTabProps) {
             Tempo Preference
           </Text>
           <VStack spacing={2} align="stretch">
-            <TempoBar label="Slow" count={musicalAnalysis.tempoRanges?.slow || 0} color="blue" />
-            <TempoBar label="Moderate" count={musicalAnalysis.tempoRanges?.moderate || 0} color="green" />
-            <TempoBar label="Fast" count={musicalAnalysis.tempoRanges?.fast || 0} color="orange" />
-            <TempoBar label="Very Fast" count={musicalAnalysis.tempoRanges?.veryFast || 0} color="red" />
+            <TempoBar
+              label="Slow (<90 BPM)"
+              count={musicalAnalysis.tempoRanges?.slow || 0}
+              max={musicalAnalysis.tempoRanges?.total || 1}
+              color="blue"
+            />
+            <TempoBar
+              label="Moderate (90-120)"
+              count={musicalAnalysis.tempoRanges?.moderate || 0}
+              max={musicalAnalysis.tempoRanges?.total || 1}
+              color="green"
+            />
+            <TempoBar
+              label="Fast (120-150)"
+              count={musicalAnalysis.tempoRanges?.fast || 0}
+              max={musicalAnalysis.tempoRanges?.total || 1}
+              color="orange"
+            />
+            <TempoBar
+              label="Very Fast (>150)"
+              count={musicalAnalysis.tempoRanges?.veryFast || 0}
+              max={musicalAnalysis.tempoRanges?.total || 1}
+              color="red"
+            />
           </VStack>
         </Box>
 
@@ -219,14 +243,15 @@ function GenreItem({ genre, count, rank }: any) {
   );
 }
 
-function TempoBar({ label, count, color }: any) {
+function TempoBar({ label, count, max, color }: any) {
+  const percentage = max > 0 ? (count / max) * 100 : 0;
+
   return (
     <Flex align="center" gap={2}>
-      <Text fontSize="sm" w="80px">{label}</Text>
+      <Text fontSize="sm" w="140px" noOfLines={1}>{label}</Text>
       <Box flex={1}>
         <Progress
-          value={count}
-          max={100}
+          value={percentage}
           colorScheme={color}
           borderRadius="full"
           size="sm"
