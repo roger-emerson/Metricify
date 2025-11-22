@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Box,
   Button,
@@ -8,6 +10,7 @@ import {
   Icon,
   Flex,
 } from '@chakra-ui/react';
+import { signIn } from 'next-auth/react';
 
 export default function Home() {
   return (
@@ -42,6 +45,7 @@ export default function Home() {
             colorScheme="green"
             bg="spotify.green"
             _hover={{ bg: '#1ed760' }}
+            onClick={() => signIn('spotify')}
           >
             Connect with Spotify
           </Button>
