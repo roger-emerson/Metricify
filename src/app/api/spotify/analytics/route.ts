@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { SpotifyClient } from '@/lib/spotify';
+import { SpotifyClientExtended } from '@/lib/spotify-extended';
 import { authOptions } from '@/lib/auth';
 import { metricifyDb } from '@/lib/db';
 import type { ListeningHistoryEntry } from '@/types/spotify';
@@ -43,7 +43,7 @@ export async function GET() {
   }
 
   try {
-    const spotify = new SpotifyClient(session.accessToken as string);
+    const spotify = new SpotifyClientExtended(session.accessToken as string);
     const userId = session.user?.email || 'default_user';
 
     console.log('Fetching optimized analytics...');
@@ -77,6 +77,20 @@ export async function GET() {
     );
     const topTracksLong = await fetchWithRetry(() =>
       spotify.getTopTracks('long_term', 20)
+    );
+
+    // Fetch library data
+    const savedTracks = await fetchWithRetry(() =>
+      spotify.getSavedTracks(50, 0)
+    );
+    const savedAlbums = await fetchWithRetry(() =>
+      spotify.getSavedAlbums(50, 0)
+    );
+    const playlists = await fetchWithRetry(() =>
+      spotify.getCurrentUserPlaylists(50, 0)
+    );
+    const followedArtists = await fetchWithRetry(() =>
+      spotify.getFollowedArtists(50)
     );
 
     // Collect all track IDs for audio features
@@ -212,10 +226,10 @@ export async function GET() {
     const response = {
       user,
       library: {
-        totalSavedTracks: 0,
-        totalSavedAlbums: 0,
-        totalPlaylists: 0,
-        totalFollowedArtists: 0,
+        totalSavedTracks: savedTracks?.total || 0,
+        totalSavedAlbums: savedAlbums?.total || 0,
+        totalPlaylists: playlists?.total || 0,
+        totalFollowedArtists: followedArtists?.artists?.total || 0,
       },
       topArtists: {
         short: topArtistsShort?.items || [],
@@ -239,10 +253,10 @@ export async function GET() {
         modeDistribution: {},
         tempoRanges,
       },
-      savedTracks: [],
-      savedAlbums: [],
-      playlists: [],
-      followedArtists: [],
+      savedTracks: savedTracks?.items || [],
+      savedAlbums: savedAlbums?.items || [],
+      playlists: playlists?.items || [],
+      followedArtists: followedArtists?.artists?.items || [],
       databaseAnalytics: dbAnalytics,
     };
 
