@@ -87,3 +87,6 @@ export interface SpotifyError {
     message: string;
   };
 }
+
+// Re-export extended types
+export * from './spotify-extended';
