@@ -28,6 +28,9 @@ import ListeningHistoryTab from '@/components/dashboard/tabs/ListeningHistoryTab
 import LibraryTab from '@/components/dashboard/tabs/LibraryTab';
 import TopArtistsTab from '@/components/dashboard/tabs/TopArtistsTab';
 import TopTracksTab from '@/components/dashboard/tabs/TopTracksTab';
+import PlaybackInsightsTab from '@/components/dashboard/tabs/PlaybackInsightsTab';
+import RecommendationsTab from '@/components/dashboard/tabs/RecommendationsTab';
+import PlaylistAnalyticsTab from '@/components/dashboard/tabs/PlaylistAnalyticsTab';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -270,6 +273,42 @@ export default function DashboardPage() {
             >
               💿 Library
             </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              🎮 Playback Insights
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              💎 Recommendations
+            </Tab>
+            <Tab
+              _selected={{
+                bg: selectedTabBg,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+              fontWeight="medium"
+              px={6}
+              whiteSpace="nowrap"
+            >
+              📋 Playlist Analytics
+            </Tab>
           </TabList>
 
           <TabPanels>
@@ -299,6 +338,18 @@ export default function DashboardPage() {
 
             <TabPanel p={0}>
               <LibraryTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <PlaybackInsightsTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <RecommendationsTab data={analyticsData} />
+            </TabPanel>
+
+            <TabPanel p={0}>
+              <PlaylistAnalyticsTab data={analyticsData} />
             </TabPanel>
           </TabPanels>
         </Tabs>

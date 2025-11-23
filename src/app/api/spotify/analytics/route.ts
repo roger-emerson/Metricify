@@ -330,6 +330,40 @@ export async function GET() {
       console.error('Database analytics error (non-fatal):', dbError);
     }
 
+    // Fetch playback insights data
+    const playbackState = await fetchWithRetry(() => spotify.getPlaybackState());
+    const currentlyPlaying = await fetchWithRetry(() => spotify.getCurrentlyPlaying());
+    const queue = await fetchWithRetry(() => spotify.getQueue());
+
+    // Fetch recommendations based on top artists and tracks
+    let recommendations = null;
+    try {
+      const topArtistIds = topArtistsShort?.items.slice(0, 2).map((a: any) => a.id) || [];
+      const topTrackIds = topTracksShort?.items.slice(0, 3).map((t: any) => t.id) || [];
+
+      if (topArtistIds.length > 0 || topTrackIds.length > 0) {
+        recommendations = await fetchWithRetry(() =>
+          spotify.getRecommendations({
+            seed_artists: topArtistIds,
+            seed_tracks: topTrackIds,
+            limit: 20,
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Recommendations fetch failed (non-fatal):', error);
+    }
+
+    // Get available genre seeds for recommendations
+    const genreSeeds = await fetchWithRetry(() => spotify.getAvailableGenreSeeds());
+
+    // Fetch detailed playlist analytics
+    const playlistAnalytics = await analyzePlaylistsDetailed(
+      spotify,
+      playlists?.items || [],
+      audioFeaturesMap
+    );
+
     const response = {
       user,
       library: {
@@ -365,6 +399,17 @@ export async function GET() {
       playlists: playlists?.items || [],
       followedArtists: followedArtists?.artists?.items || [],
       databaseAnalytics: dbAnalytics,
+      playbackInsights: {
+        currentPlayback: playbackState,
+        currentlyPlaying: currentlyPlaying,
+        queue: queue,
+      },
+      recommendations: {
+        tracks: recommendations?.tracks || [],
+        seeds: recommendations?.seeds || [],
+        availableGenres: genreSeeds?.genres || [],
+      },
+      playlistAnalytics: playlistAnalytics,
     };
 
     console.log('Analytics fetch complete');
@@ -387,4 +432,99 @@ function average(numbers: number[]): number {
   const validNumbers = numbers.filter((n) => !isNaN(n) && n !== null);
   if (validNumbers.length === 0) return 0;
   return validNumbers.reduce((a, b) => a + b, 0) / validNumbers.length;
+}
+
+async function analyzePlaylistsDetailed(
+  spotify: SpotifyClientExtended,
+  playlists: any[],
+  audioFeaturesMap: Map<string, any>
+) {
+  if (!playlists || playlists.length === 0) {
+    return {
+      totalPlaylists: 0,
+      totalTracks: 0,
+      ownedPlaylists: 0,
+      followedPlaylists: 0,
+      collaborativePlaylists: 0,
+      averagePlaylistSize: 0,
+      topPlaylists: [],
+    };
+  }
+
+  // Calculate basic stats
+  const ownedPlaylists = playlists.filter((p) => p.owner.id === playlists[0]?.owner?.id).length;
+  const collaborativePlaylists = playlists.filter((p) => p.collaborative).length;
+  const totalTracks = playlists.reduce((sum, p) => sum + (p.tracks?.total || 0), 0);
+  const averagePlaylistSize = playlists.length > 0 ? Math.round(totalTracks / playlists.length) : 0;
+
+  // Analyze top playlists (limit to first 5 for performance)
+  const topPlaylists = await Promise.all(
+    playlists.slice(0, 5).map(async (playlist) => {
+      try {
+        // Get a sample of tracks from the playlist
+        const playlistTracks = await spotify.getPlaylistTracks(playlist.id, 50, 0);
+        const trackIds = playlistTracks.items
+          .filter((item: any) => item.track?.id)
+          .map((item: any) => item.track.id);
+
+        // Calculate audio features for playlist
+        const features = trackIds
+          .map((id: string) => audioFeaturesMap.get(id))
+          .filter((f: any) => f !== null && f !== undefined);
+
+        const avgEnergy = average(features.map((f: any) => f.energy).filter((v: number) => !isNaN(v)));
+        const avgDanceability = average(features.map((f: any) => f.danceability).filter((v: number) => !isNaN(v)));
+        const avgValence = average(features.map((f: any) => f.valence).filter((v: number) => !isNaN(v)));
+
+        // Count unique genres (from tracks)
+        const genreSet = new Set<string>();
+        playlistTracks.items.forEach((item: any) => {
+          if (item.track?.artists) {
+            item.track.artists.forEach((artist: any) => {
+              if (artist.genres) {
+                artist.genres.forEach((g: string) => genreSet.add(g));
+              }
+            });
+          }
+        });
+
+        return {
+          id: playlist.id,
+          name: playlist.name,
+          image: playlist.images?.[0]?.url || null,
+          tracks: playlist.tracks?.total || 0,
+          owner: playlist.owner?.display_name || 'Unknown',
+          collaborative: playlist.collaborative || false,
+          avgEnergy: avgEnergy,
+          avgDanceability: avgDanceability,
+          avgValence: avgValence,
+          genreDiversity: genreSet.size,
+        };
+      } catch (error) {
+        console.error(`Error analyzing playlist ${playlist.id}:`, error);
+        return {
+          id: playlist.id,
+          name: playlist.name,
+          image: playlist.images?.[0]?.url || null,
+          tracks: playlist.tracks?.total || 0,
+          owner: playlist.owner?.display_name || 'Unknown',
+          collaborative: playlist.collaborative || false,
+          avgEnergy: 0,
+          avgDanceability: 0,
+          avgValence: 0,
+          genreDiversity: 0,
+        };
+      }
+    })
+  );
+
+  return {
+    totalPlaylists: playlists.length,
+    totalTracks,
+    ownedPlaylists,
+    followedPlaylists: playlists.length - ownedPlaylists,
+    collaborativePlaylists,
+    averagePlaylistSize,
+    topPlaylists,
+  };
 }

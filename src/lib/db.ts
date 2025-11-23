@@ -105,6 +105,121 @@ function initializeDatabase(database: Database.Database) {
       UNIQUE(user_id, snapshot_date)
     )
   `);
+
+  // Playback context - track WHERE music is played from
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS playback_context (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      track_id TEXT NOT NULL,
+      played_at TEXT NOT NULL,
+      context_type TEXT,
+      context_uri TEXT,
+      context_id TEXT,
+      shuffle_state INTEGER DEFAULT 0,
+      repeat_state TEXT DEFAULT 'off',
+      device_type TEXT,
+      device_name TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, track_id, played_at)
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_playback_context_user ON playback_context(user_id, played_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_playback_context_type ON playback_context(user_id, context_type);
+  `);
+
+  // Device history - track listening devices over time
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS device_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      device_id TEXT,
+      device_name TEXT NOT NULL,
+      device_type TEXT NOT NULL,
+      first_seen TEXT NOT NULL,
+      last_seen TEXT NOT NULL,
+      total_sessions INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, device_id, device_name)
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_device_history_user ON device_history(user_id, last_seen DESC);
+  `);
+
+  // Playlist analysis - track playlist composition
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS playlist_analysis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      playlist_id TEXT NOT NULL,
+      playlist_name TEXT NOT NULL,
+      owner_id TEXT NOT NULL,
+      is_collaborative INTEGER DEFAULT 0,
+      is_public INTEGER DEFAULT 1,
+      total_tracks INTEGER DEFAULT 0,
+      snapshot_date TEXT NOT NULL,
+      avg_popularity REAL,
+      avg_danceability REAL,
+      avg_energy REAL,
+      avg_valence REAL,
+      unique_artists INTEGER,
+      genre_diversity REAL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, playlist_id, snapshot_date)
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_playlist_analysis_user ON playlist_analysis(user_id, snapshot_date DESC);
+  `);
+
+  // Recommendation history - log recommendations shown vs acted upon
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS recommendation_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      recommended_track_id TEXT NOT NULL,
+      seed_type TEXT NOT NULL,
+      seed_value TEXT NOT NULL,
+      recommendation_date TEXT NOT NULL,
+      was_played INTEGER DEFAULT 0,
+      was_saved INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_recommendation_history_user ON recommendation_history(user_id, recommendation_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_recommendation_history_track ON recommendation_history(user_id, recommended_track_id);
+  `);
+
+  // Album play statistics - track full album listening patterns
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS album_play_stats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      album_id TEXT NOT NULL,
+      album_name TEXT NOT NULL,
+      artist_id TEXT NOT NULL,
+      artist_name TEXT NOT NULL,
+      total_plays INTEGER DEFAULT 0,
+      unique_tracks_played INTEGER DEFAULT 0,
+      total_tracks_in_album INTEGER DEFAULT 0,
+      completion_percentage REAL DEFAULT 0,
+      first_played TEXT,
+      last_played TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, album_id)
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_album_play_stats_user ON album_play_stats(user_id, total_plays DESC);
+  `);
 }
 
 export class MetricifyDB {

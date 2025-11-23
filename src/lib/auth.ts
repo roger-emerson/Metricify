@@ -2,13 +2,28 @@ import { NextAuthOptions } from 'next-auth';
 import SpotifyProvider from 'next-auth/providers/spotify';
 
 const scopes = [
+  // User Profile & Account
   'user-read-email',
   'user-read-private',
+
+  // Listening History & Top Items
   'user-top-read',
   'user-read-recently-played',
+
+  // Library Access
   'user-library-read',
+
+  // Playlists
   'playlist-read-private',
+  'playlist-read-collaborative',
+
+  // Following
   'user-follow-read',
+
+  // Playback & Real-Time Data
+  'user-read-playback-state',
+  'user-read-currently-playing',
+  'user-read-playback-position',
 ].join(' ');
 
 export const authOptions: NextAuthOptions = {

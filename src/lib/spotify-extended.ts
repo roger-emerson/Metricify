@@ -14,6 +14,14 @@ import type {
   SpotifyAlbum,
   ArtistTopTracks,
   RelatedArtists,
+  PlaybackState,
+  CurrentlyPlaying,
+  Queue,
+  RecommendationOptions,
+  RecommendationsResponse,
+  AvailableGenreSeeds,
+  PlaylistTrack,
+  PlaylistTracksResponse,
 } from '@/types/spotify';
 
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
@@ -295,6 +303,132 @@ export class SpotifyClientExtended {
   // === ALBUM DETAILS ===
   async getAlbum(albumId: string): Promise<SpotifyAlbum> {
     return this.fetch<SpotifyAlbum>(`/albums/${albumId}`);
+  }
+
+  async getAlbumTracks(albumId: string, limit: number = 50, offset: number = 0): Promise<{ items: SpotifyTrack[] }> {
+    return this.fetch<{ items: SpotifyTrack[] }>(
+      `/albums/${albumId}/tracks?limit=${limit}&offset=${offset}`
+    );
+  }
+
+  // === PLAYBACK & REAL-TIME DATA ===
+
+  /**
+   * Get information about the user's current playback state
+   * Requires: user-read-playback-state scope
+   */
+  async getPlaybackState(): Promise<PlaybackState | null> {
+    try {
+      return await this.fetch<PlaybackState>('/me/player');
+    } catch (error) {
+      // Returns 204 No Content when no active device
+      return null;
+    }
+  }
+
+  /**
+   * Get the user's currently playing track
+   * Requires: user-read-currently-playing or user-read-playback-state scope
+   */
+  async getCurrentlyPlaying(): Promise<CurrentlyPlaying | null> {
+    try {
+      return await this.fetch<CurrentlyPlaying>('/me/player/currently-playing');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Get the list of objects that make up the user's queue
+   * Requires: user-read-playback-state scope
+   */
+  async getQueue(): Promise<Queue | null> {
+    try {
+      return await this.fetch<Queue>('/me/player/queue');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // === RECOMMENDATIONS ===
+
+  /**
+   * Get recommendations based on seeds and tuneable parameters
+   * Requires at least one seed (artist, track, or genre)
+   */
+  async getRecommendations(options: RecommendationOptions): Promise<RecommendationsResponse> {
+    const params = new URLSearchParams();
+
+    // Add seeds
+    if (options.seed_artists?.length) {
+      params.append('seed_artists', options.seed_artists.join(','));
+    }
+    if (options.seed_tracks?.length) {
+      params.append('seed_tracks', options.seed_tracks.join(','));
+    }
+    if (options.seed_genres?.length) {
+      params.append('seed_genres', options.seed_genres.join(','));
+    }
+
+    // Add optional parameters
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.market) params.append('market', options.market);
+
+    // Add all tunable track attributes
+    Object.entries(options).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        !['seed_artists', 'seed_tracks', 'seed_genres', 'limit', 'market'].includes(key)
+      ) {
+        params.append(key, value.toString());
+      }
+    });
+
+    return this.fetch<RecommendationsResponse>(`/recommendations?${params.toString()}`);
+  }
+
+  /**
+   * Get available genre seeds for recommendations
+   */
+  async getAvailableGenreSeeds(): Promise<AvailableGenreSeeds> {
+    return this.fetch<AvailableGenreSeeds>('/recommendations/available-genre-seeds');
+  }
+
+  // === PLAYLIST TRACKS ===
+
+  /**
+   * Get full details of the items in a playlist
+   */
+  async getPlaylistTracks(
+    playlistId: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<PlaylistTracksResponse> {
+    return this.fetch<PlaylistTracksResponse>(
+      `/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`
+    );
+  }
+
+  /**
+   * Get ALL tracks from a playlist (with pagination)
+   */
+  async getAllPlaylistTracks(playlistId: string): Promise<PlaylistTrack[]> {
+    const results: PlaylistTrack[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
+      const response = await this.getPlaylistTracks(playlistId, limit, offset);
+      results.push(...response.items);
+
+      if (!response.next || response.items.length < limit) break;
+      offset += limit;
+
+      // Safety limit
+      if (offset >= 10000) break;
+    }
+
+    return results;
   }
 
   // === UTILITY METHODS ===
