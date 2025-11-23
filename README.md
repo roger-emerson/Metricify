@@ -1,232 +1,325 @@
 # Metricify 🎵
 
-A visually stunning dashboard for visualizing your Spotify listening metrics, exploring your favorite artists, and planning your festival experience.
+**The Most Comprehensive Spotify Analytics Dashboard**
 
-## Features
+A production-ready, visually stunning analytics platform that provides **extreme granularity** into your Spotify listening habits with beautiful visualizations, historical tracking, and detailed audio analysis.
 
-### Current Features
-- 🎨 **Beautiful Dark UI** - Spotify-themed interface with Chakra UI components
-- 🔐 **Spotify SSO** - Secure authentication using Spotify OAuth
-- 📊 **Listening Metrics** - Detailed insights into your listening habits
-- 🎤 **Top Artists** - Discover your most-played artists across different time periods
-- 🎵 **Top Songs** - View your favorite tracks with rich metadata
-- 📈 **Recent Activity** - Track your recently played songs
-- 🎨 **Interactive Visualizations** - Engaging, clickable components for data exploration
+## ✨ Features
 
-### Planned Features
-- 🎪 **Festival Integration** - Import festival lineups and match with your listening data
-- 📅 **Smart Scheduling** - Get personalized schedule recommendations based on your top artists
-- 🗺️ **Festival Planner** - Organize your festival experience with set time reminders
-- 🎯 **Artist Suggestions** - Discover new artists at festivals based on your taste
-- 📱 **Mobile Optimization** - Responsive design for on-the-go festival planning
+### 🎯 Multi-Tab Dashboard
+Navigate through 7 comprehensive analytics tabs:
 
-## Tech Stack
+- **📊 Overview** - Key metrics, musical profile, genre distribution, and tempo analysis
+- **🎵 Audio Features** - Deep dive into 12+ acoustic characteristics per track
+- **🎸 Genre Analysis** - Visual breakdown of your 20+ top genres
+- **🎤 Top Artists** - 50+ artists across 3 time periods (4 weeks, 6 months, all time)
+- **🎧 Top Tracks** - 50+ tracks with full metadata and audio features
+- **📅 Listening History** - Historical patterns and recently played analysis
+- **💿 Library** - Saved tracks, albums, and playlists with beautiful cards
 
-- **Frontend**: Next.js 15 (React 18) with TypeScript
-- **Styling**: Chakra UI with custom Spotify-themed design
-- **Authentication**: NextAuth.js with Spotify OAuth provider
-- **API**: Spotify Web API
-- **Type Safety**: TypeScript with strict mode
+### 🔥 Extreme Granularity Analytics
 
-## Prerequisites
+**Audio Features (12+ Metrics Per Track):**
+- Danceability, Energy, Valence (mood)
+- Acousticness, Instrumentalness, Speechiness
+- Liveness, Loudness, Tempo (BPM)
+- Key, Mode (major/minor), Time Signature
 
-- Node.js 18+ and npm/yarn (or Docker as an alternative)
-- A Spotify account (free or premium)
-- Spotify Developer credentials
+**Musical Analysis:**
+- Genre distribution and evolution
+- Key and mode preferences
+- Tempo range categorization
+- Energy/valence patterns
+- Listening time heatmaps by hour/day
 
-## Setup Instructions
+**Historical Tracking:**
+- SQLite database for persistent storage
+- Listening pattern analysis
+- Play count aggregations
+- Audio feature trends over time
+- Artist/track growth tracking
 
-### 1. Clone the Repository
+### 🎨 Beautiful Design
 
-```bash
-git clone <repository-url>
-cd Metricify
-```
+- **Dark Theme** - Spotify-inspired professional interface
+- **Interactive Elements** - Hover effects, tooltips, and smooth animations
+- **Responsive Layout** - Perfect on desktop, tablet, and mobile
+- **Color-Coded Metrics** - Visual hierarchy and easy scanning
+- **Glass-morphism Cards** - Modern, clean aesthetic
+- **Progress Bars & Charts** - Animated visualizations
 
-### 2. Set Up Spotify Developer Application
+### 🚀 Production Features
+
+- **Docker Support** - One-command deployment
+- **TypeScript** - Full type safety
+- **Next.js 15** - Latest framework features
+- **Authentication** - Secure Spotify OAuth
+- **Database** - SQLite for historical analytics
+- **API Optimization** - Parallel data fetching
+- **Lazy Loading** - Performance-optimized tabs
+
+## 📊 Analytics Endpoints
+
+### `/api/spotify/analytics` - Comprehensive
+Returns **everything** in one call:
+- User profile and library stats
+- Top artists/tracks (all time ranges, 50+ each)
+- Audio features for all tracks
+- Genre, key, mode, tempo analysis
+- Database-powered historical insights
+- Listening patterns by time/day
+
+### `/api/spotify/dashboard` - Basic
+Simplified endpoint for quick overview
+
+## 🛠 Tech Stack
+
+**Frontend:**
+- Next.js 15 (App Router)
+- React 18 with TypeScript
+- Chakra UI for components
+- Framer Motion for animations
+
+**Backend:**
+- Next.js API Routes
+- NextAuth.js for authentication
+- Spotify Web API (extended client)
+
+**Database:**
+- Better-SQLite3 for historical tracking
+- Optimized schemas and indexes
+
+**Visualization:**
+- Recharts (ready for advanced charts)
+- Chart.js (alternative charting)
+- Custom React components
+
+**Deployment:**
+- Docker & Docker Compose
+- Production-optimized builds
+- Multi-stage Dockerfile
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose (easiest method)
+- **OR** Node.js 18+ and npm
+- Spotify Developer Account
+
+### 1. Spotify Setup
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Click "Create an App"
-3. Fill in the details:
-   - **App Name**: Metricify (or your preferred name)
-   - **App Description**: Personal Spotify metrics dashboard
-   - **Redirect URI**: `http://localhost:3000/api/auth/callback/spotify`
-4. After creating, note your **Client ID** and **Client Secret**
+2. Create a new app
+3. Add redirect URI: `http://127.0.0.1:3000/api/auth/callback/spotify`
+4. Note your Client ID and Client Secret
 
-### 3. Configure Environment Variables
+### 2. Environment Configuration
 
-Copy the example environment file:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` and add your Spotify credentials:
+Create `.env.local` in the project root:
 
 ```env
-SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-NEXTAUTH_SECRET=your_nextauth_secret_here
-NEXTAUTH_URL=http://localhost:3000
-NODE_ENV=development
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_client_secret_here
+NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
+NEXTAUTH_URL=http://127.0.0.1:3000
 ```
 
-Generate a secure `NEXTAUTH_SECRET`:
-
+Generate NEXTAUTH_SECRET:
 ```bash
 openssl rand -base64 32
 ```
 
-### 4. Choose Your Setup Method
+### 3. Run with Docker (Recommended)
 
-#### Option A: Standard Node.js Setup (Recommended for Development)
-
-**Install dependencies:**
 ```bash
-npm install
+docker-compose up -d
 ```
 
-**Run the development server:**
+That's it! The app will:
+- Install dependencies
+- Build the production app
+- Start the server at http://127.0.0.1:3000
+
+### Alternative: Run Locally
+
 ```bash
+npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-#### Option B: Docker Setup
-
-**Build and run with Docker Compose:**
-```bash
-docker-compose up
-```
-
-The app will be available at [http://localhost:3000](http://localhost:3000).
-
-**To stop the Docker container:**
-```bash
-docker-compose down
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 metricify/
 ├── src/
-│   ├── app/                    # Next.js app directory
-│   │   ├── api/               # API routes
-│   │   │   └── auth/          # NextAuth configuration
-│   │   ├── layout.tsx         # Root layout with providers
-│   │   ├── page.tsx           # Home page
-│   │   └── providers.tsx      # Chakra UI provider
-│   ├── components/            # Reusable React components
-│   ├── lib/                   # Utility functions and API clients
-│   │   └── spotify.ts         # Spotify API client
-│   └── types/                 # TypeScript type definitions
-│       ├── next-auth.d.ts     # NextAuth type extensions
-│       └── spotify.ts         # Spotify API types
-├── .env.local                 # Environment variables (not in git)
-├── .env.example               # Example environment file
-├── next.config.ts             # Next.js configuration
-├── package.json               # Dependencies and scripts
-└── tsconfig.json              # TypeScript configuration
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── auth/[...nextauth]/     # Authentication
+│   │   │   └── spotify/
+│   │   │       ├── analytics/          # Comprehensive analytics
+│   │   │       └── dashboard/          # Basic dashboard
+│   │   ├── dashboard/
+│   │   │   └── page.tsx                # Main dashboard with tabs
+│   │   ├── layout.tsx                  # Root layout with navbar
+│   │   ├── page.tsx                    # Landing page
+│   │   └── providers.tsx               # Chakra UI provider
+│   ├── components/
+│   │   ├── dashboard/
+│   │   │   ├── tabs/                   # 7 dashboard tabs
+│   │   │   ├── TopArtists.tsx
+│   │   │   ├── TopTracks.tsx
+│   │   │   ├── GenreDistribution.tsx
+│   │   │   └── ListeningStats.tsx
+│   │   └── Navbar.tsx
+│   ├── lib/
+│   │   ├── auth.ts                     # NextAuth config
+│   │   ├── spotify.ts                  # Basic Spotify client
+│   │   ├── spotify-extended.ts         # Extended API client
+│   │   └── db.ts                       # SQLite database
+│   └── types/
+│       ├── spotify.ts                  # Spotify types
+│       ├── spotify-extended.ts         # Extended types
+│       └── next-auth.d.ts              # Auth types
+├── data/                                # SQLite database (auto-created)
+├── docker-compose.yml
+├── Dockerfile                           # Multi-stage production build
+├── next.config.ts                       # Standalone output
+└── package.json                         # Dependencies
 ```
 
-## Available Scripts
+## 🎯 Usage
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
+1. **Visit** http://127.0.0.1:3000
+2. **Click** "Connect with Spotify"
+3. **Authorize** the app (one-time)
+4. **Explore** your comprehensive analytics!
 
-## Troubleshooting
+### Navigation
 
-### Clean Start (Reset Everything)
+Use the **top tab bar** to explore:
+- Overview stats and musical profile
+- Detailed audio feature breakdowns
+- Genre analysis with visual rankings
+- Top artists and tracks (multiple time ranges)
+- Listening history and patterns
+- Your complete library
 
-If you encounter issues, you can completely reset the application:
+### Interactive Features
 
-**1. Stop running processes:**
+- **Hover** over audio features for detailed tooltips
+- **Click** tabs to navigate between views
+- **Scroll** through your top 50+ artists/tracks
+- **View** real-time updated statistics
+
+## 📖 Documentation
+
+- [GRANULAR_METRICS_GUIDE.md](GRANULAR_METRICS_GUIDE.md) - Complete metrics documentation
+- [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) - Detailed Spotify configuration
+
+## 🔧 Available Scripts
+
 ```bash
-docker-compose down  # If using Docker
+npm run dev      # Development server
+npm run build    # Production build
+npm start        # Production server
+npm run lint     # ESLint
+
+# Docker commands
+docker-compose up -d              # Start in background
+docker-compose down               # Stop containers
+docker-compose logs -f            # View logs
+docker-compose up -d --build      # Rebuild and start
 ```
 
-**2. Remove all build artifacts:**
+## 🎨 Customization
+
+### Color Theme
+Edit `src/app/providers.tsx` to customize colors:
+```typescript
+colors: {
+  spotify: {
+    green: '#1DB954',  // Change primary color
+    black: '#191414',
+  },
+}
+```
+
+### Database Location
+Database is stored in `data/metricify.db` (auto-created)
+
+## 🐛 Troubleshooting
+
+### "Failed to fetch analytics data"
+- Check Spotify credentials in `.env.local`
+- Verify redirect URI is `http://127.0.0.1:3000/api/auth/callback/spotify`
+- Ensure you're using `127.0.0.1` not `localhost`
+
+### Port Already in Use
 ```bash
-rm -rf .next node_modules package-lock.json
+# Find and kill process on port 3000
+lsof -i :3000
+kill -9 <PID>
 ```
 
-**3. Clean Docker artifacts (if applicable):**
+### Docker Issues
 ```bash
-docker rmi metricify-metricify:latest
-docker container prune -f
+# Clean rebuild
+docker-compose down
+docker-compose up -d --build --no-cache
 ```
 
-**4. Fresh install:**
+### Database Issues
 ```bash
-npm install
-npm run dev
+# Reset database
+rm -rf data/
+# Restart app (database will be recreated)
+docker-compose restart
 ```
 
-### Common Issues
+## 🔒 Privacy & Security
 
-- **Port 3000 already in use**: Stop any other services running on port 3000 or change the port in `package.json`
-- **Spotify OAuth errors**: Verify your redirect URI in the Spotify Developer Dashboard matches exactly: `http://localhost:3000/api/auth/callback/spotify`
-- **Environment variables not loading**: Ensure `.env.local` exists and has no syntax errors
+- **All data stays local** - No external analytics or tracking
+- **Secure OAuth** - Industry-standard Spotify authentication
+- **Database is local** - SQLite file stored on your machine
+- **No third-party services** - Direct Spotify API only
 
-## Spotify API Scopes
+## 🚦 API Rate Limits
 
-The app requests the following Spotify permissions:
+Spotify allows:
+- **Regular tier:** Standard rate limits
+- **Extended quota:** Available on request
 
-- `user-read-email` - Read user's email address
-- `user-read-private` - Read user's profile information
-- `user-top-read` - Read user's top artists and tracks
-- `user-read-recently-played` - Read user's recently played tracks
-- `user-library-read` - Read user's saved tracks and albums
-- `playlist-read-private` - Read user's private playlists
-- `user-follow-read` - Read user's followed artists
+The app uses parallel requests and caching to optimize API usage.
 
-## Development Roadmap
+## 📈 Performance
 
-### Phase 1: Core Metrics (Current)
-- [x] Spotify authentication
-- [x] Basic UI setup with Chakra UI
-- [ ] Top artists display
-- [ ] Top tracks display
-- [ ] Recently played tracks
-- [ ] Listening statistics
+- **Production build** - Optimized Next.js output
+- **Lazy loading** - Tabs load on demand
+- **Database caching** - Historical data stored locally
+- **Parallel fetching** - Multiple API calls simultaneously
+- **Responsive design** - Fast on all devices
 
-### Phase 2: Enhanced Visualizations
-- [ ] Genre distribution charts
-- [ ] Listening time heatmaps
-- [ ] Artist/track popularity trends
-- [ ] Audio features analysis
+## 🤝 Contributing
 
-### Phase 3: Festival Integration
-- [ ] Festival lineup import
-- [ ] Artist matching algorithm
-- [ ] Schedule conflict detection
-- [ ] Personalized itinerary builder
-- [ ] Set time notifications
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-### Phase 4: Social Features
-- [ ] Share your metrics
-- [ ] Compare with friends
-- [ ] Festival group planning
-- [ ] Collaborative schedules
+## 📝 License
 
-## Contributing
+For personal and educational use. Spotify API usage subject to [Spotify's Terms of Service](https://developer.spotify.com/terms).
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 🙏 Acknowledgments
 
-## License
-
-This project is for personal use and educational purposes. Spotify API usage is subject to [Spotify's Terms of Service](https://developer.spotify.com/terms).
-
-## Acknowledgments
-
-- Spotify for their comprehensive Web API
-- Chakra UI for the beautiful component library
-- Next.js team for the amazing framework
+- **Spotify** - Comprehensive Web API
+- **Chakra UI** - Beautiful component library
+- **Next.js** - Amazing React framework
+- **Better-SQLite3** - Fast, reliable database
 
 ---
 
-Built with ❤️ for music lovers and festival goers
+**Built with ❤️ for music data enthusiasts**
+
+Need help? Check the [Granular Metrics Guide](GRANULAR_METRICS_GUIDE.md) for detailed documentation.
