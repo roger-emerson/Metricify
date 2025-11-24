@@ -39,16 +39,18 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, profile }) {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
+        token.spotifyId = profile?.id; // Add Spotify user ID to token
       }
       return token;
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
+      session.user.spotifyId = token.spotifyId as string; // Pass Spotify ID to session
       return session;
     },
     async redirect({ url, baseUrl }) {

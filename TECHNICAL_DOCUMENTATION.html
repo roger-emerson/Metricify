@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Metricify Technical Documentation - AWS-powered Festival Planning Platform">
+    <title>Metricify - Technical Documentation</title>
+    
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Async load Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <!-- Defer Mermaid -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <style>
+        /* 
+         * Performance Optimizations Applied:
+         * - GPU-accelerated animations (transform, opacity only)
+         * - Contain property for layout isolation
+         * - will-change for hover states only
+         * - RAF-throttled scroll listeners
+         * - Passive event listeners
+         * - Deferred mermaid initialization
+         * - Async font loading
+         * - Resource hints (preconnect, dns-prefetch)
+         */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #0066FF;
+            --primary-dark: #0052CC;
+            --secondary: #00D4FF;
+            --dark: #0A0E27;
+            --dark-light: #1A1F3A;
+            --text: #E5E7EB;
+            --text-muted: #9CA3AF;
+            --border: #2D3748;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --bg: #0F1419;
+            --card-bg: #161B22;
+            --aws-orange: #FF9900;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+            overflow-x: hidden;
+        }
+        
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
+        }
+        
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 102, 255, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            top: -250px;
+            right: -250px;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        .animated-bg::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            bottom: -200px;
+            left: -200px;
+            animation: float 15s infinite ease-in-out reverse;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            padding: 0 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar.scrolled {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 150px 2rem 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 102, 255, 0.1);
+            border: 1px solid var(--primary);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        /* Section */
+        .section {
+            padding: 80px 0;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            will-change: opacity, transform;
+        }
+        
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+            will-change: auto;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+        
+        .section-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+        
+        .section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            position: relative;
+        }
+        
+        .section h3 {
+            font-size: 1.8rem;
+            color: var(--text);
+            margin: 2rem 0 1rem;
+        }
+        
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            cursor: pointer;
+            contain: layout style paint;
+            will-change: transform;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 102, 255, 0.3);
+            border-color: var(--primary);
+        }
+        
+        .card:not(:hover) {
+            will-change: auto;
+        }
+        
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .card h4 {
+            font-size: 1.3rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        
+        /* Tech Stack Cards */
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .tech-card {
+            background: linear-gradient(135deg, var(--card-bg), var(--dark-light));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tech-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+        
+        .tech-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 102, 255, 0.2);
+        }
+        
+        .tech-card h4 {
+            color: var(--text);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .tech-card ul {
+            list-style: none;
+        }
+        
+        .tech-card li {
+            color: var(--text-muted);
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .tech-card li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 1rem 2rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
+        }
+        
+        .tab:hover {
+            color: var(--text);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Diagram Container */
+        .diagram-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .diagram-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 0%, rgba(0, 102, 255, 0.05), transparent 70%);
+            pointer-events: none;
+        }
+        
+        .diagram-title {
+            text-align: center;
+            color: var(--text);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+        
+        /* API Endpoint */
+        .api-endpoint {
+            background: var(--card-bg);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+        }
+        
+        .api-endpoint:hover {
+            background: var(--dark-light);
+            transform: translateX(5px);
+        }
+        
+        .api-method {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-right: 1rem;
+        }
+        
+        .copy-btn {
+            background: var(--dark-light);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+        }
+        
+        th {
+            background: var(--dark-light);
+            color: var(--text);
+            padding: 1.2rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        td {
+            padding: 1.2rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        
+        tr:hover {
+            background: var(--dark-light);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Accordion */
+        .accordion {
+            margin: 2rem 0;
+        }
+        
+        .accordion-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .accordion-header {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .accordion-header:hover {
+            background: var(--dark-light);
+        }
+        
+        .accordion-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .accordion-item.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 1.5rem;
+        }
+        
+        .accordion-item.active .accordion-content {
+            max-height: 2000px;
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        /* Alert Box */
+        .alert {
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        
+        .alert-icon {
+            font-size: 1.5rem;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            z-index: 999;
+            transition: width 0.1s ease;
+        }
+        
+        /* CTA Button */
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 102, 255, 0.4);
+        }
+        
+        .cta-button-secondary {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .cta-button-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--dark-light);
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 5rem;
+        }
+        
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .footer h3 {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: -100%;
+                width: 100%;
+                height: calc(100vh - 70px);
+                background: var(--dark);
+                flex-direction: column;
+                padding: 2rem;
+                transition: left 0.3s ease;
+            }
+            
+            .nav-links.active {
+                left: 0;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.2rem;
+            }
+            
+            .card-grid,
+            .tech-stack {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Scroll to Top */
+        .scroll-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--primary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        
+        .scroll-top.visible {
+            opacity: 1;
+        }
+        
+        .scroll-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 102, 255, 0.4);
+        }
+
+        /* Interactive Architecture Diagram */
+        .architecture-diagram {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .arch-layer {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.05), rgba(0, 212, 255, 0.05));
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .arch-layer:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 30px rgba(0, 102, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .layer-title {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .arch-components {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1.5rem;
+            justify-items: center;
+        }
+
+        .arch-node {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            min-width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .arch-node:hover {
+            transform: translateY(-8px) scale(1.05);
+            border-color: var(--primary);
+            box-shadow: 0 12px 40px rgba(0, 102, 255, 0.3);
+            background: linear-gradient(135deg, var(--card-bg), var(--dark-light));
+            z-index: 10;
+        }
+
+        .arch-node img {
+            height: 3rem;
+            width: auto;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .arch-node:hover img {
+            transform: scale(1.1);
+        }
+
+        .arch-node span {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .arch-node-large {
+            grid-column: 1 / -1;
+            min-width: 200px;
+        }
+
+        /* Tooltip */
+        .arch-node[data-tooltip]::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: var(--dark);
+            color: var(--text);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border: 1px solid var(--primary);
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .arch-node[data-tooltip]::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--primary);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .arch-node:hover[data-tooltip]::before,
+        .arch-node:hover[data-tooltip]::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* Arrows */
+        .arch-arrow-down {
+            text-align: center;
+            margin: 1rem 0;
+            animation: bounce 2s infinite;
+        }
+
+        .arch-arrow-down i {
+            font-size: 2rem;
+            color: var(--primary);
+            filter: drop-shadow(0 0 10px rgba(0, 102, 255, 0.5));
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(10px);
+            }
+        }
+
+        /* Connection Lines with Animated Data Flow */
+        .connection-line {
+            position: relative;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .connection-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px rgba(0, 102, 255, 0.5);
+        }
+
+        .data-flow {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            z-index: 2;
+        }
+
+        .flow-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--secondary);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+            animation: flowDown 2s infinite ease-in-out;
+        }
+
+        @keyframes flowDown {
+            0% {
+                transform: translateY(-40px);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+        }
+
+        .connection-label {
+            position: relative;
+            z-index: 3;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--primary);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Node Badge */
+        .node-badge {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0, 102, 255, 0.4);
+        }
+
+        /* Architecture Badge */
+        .arch-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-top: 2rem;
+        }
+
+        .arch-badge i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        .arch-badge strong {
+            display: block;
+            color: var(--text);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-badge span {
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .arch-badge span:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .arch-badge span[data-tooltip]::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-5px);
+            background: var(--dark);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border: 1px solid var(--primary);
+            z-index: 100;
+        }
+
+        .arch-badge span:hover[data-tooltip]::before {
+            opacity: 1;
+        }
+
+        /* Responsive architecture */
+        @media (max-width: 768px) {
+            .arch-components {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+
+            .arch-node {
+                min-width: 100px;
+                padding: 1rem 0.5rem;
+            }
+
+            .arch-node img {
+                height: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-music"></i>
+                Metricify
+            </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#api">API</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#database">Database</a></li>
+                <li><a href="#deployment">Deployment</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>🎵 Metricify</h1>
+            <p>Festival Planning Intelligence Platform</p>
+            <div class="version-badge">
+                <i class="fas fa-code-branch"></i>
+                Technical Documentation v1.0
+            </div>
+            <div class="version-badge" style="margin-left: 1rem; border-color: var(--aws-orange); background: rgba(255, 153, 0, 0.1);">
+                <i class="fab fa-aws" style="color: var(--aws-orange);"></i>
+                <span style="color: var(--aws-orange);">Powered by AWS</span>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Main Content -->
+    <div class="container">
+        
+        <!-- Overview Section -->
+        <section class="section" id="overview">
+            <div class="section-header">
+                <i class="fas fa-info-circle section-icon"></i>
+                <h2>Executive Overview</h2>
+            </div>
+            
+            <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 2rem;">
+                Metricify is an intelligent festival planning application that combines Spotify listening data with EDM festival lineups to generate personalized, conflict-free itineraries. Built with a DevSecOps-first approach, the platform prioritizes security, scalability, and user experience.
+            </p>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-bullseye"></i></div>
+                    <h4>Core Mission</h4>
+                    <p>Transform festival-goer experience through data-driven personalization and intelligent scheduling</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-users"></i></div>
+                    <h4>Target Users</h4>
+                    <p>EDM enthusiasts attending multiple festivals who want optimized, personalized schedules</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+                    <h4>Security First</h4>
+                    <p>Enterprise-grade security with OAuth 2.0 PKCE, encrypted sessions, and automated scanning</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Architecture Section -->
+        <section class="section" id="architecture">
+            <div class="section-header">
+                <i class="fas fa-project-diagram section-icon"></i>
+                <h2>System Architecture</h2>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" data-tab="overview-arch">System Overview</button>
+                <button class="tab" data-tab="data-flow">Data Flow</button>
+                <button class="tab" data-tab="tech-stack">Tech Stack</button>
+            </div>
+            
+            <div class="tab-content active" id="overview-arch">
+                <div class="diagram-container" style="padding: 3rem;">
+                    <div class="diagram-title">High-Level System Architecture</div>
+                    <div class="architecture-diagram">
+                        <!-- Client Layer -->
+                        <div class="arch-layer" id="client-layer">
+                            <h4 class="layer-title">Client Layer</h4>
+                            <div class="arch-components">
+                                <div class="arch-node" data-tooltip="Chrome, Firefox, Safari, Edge">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/chrome/chrome-original.svg" alt="Browser">
+                                    <span>Web Browser</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="iOS & Android">
+                                    <i class="fas fa-mobile-alt" style="font-size: 3rem;"></i>
+                                    <span>Mobile Browser</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Animated Connection -->
+                        <div class="connection-line">
+                            <div class="data-flow">
+                                <div class="flow-dot"></div>
+                                <div class="flow-dot" style="animation-delay: 0.5s;"></div>
+                                <div class="flow-dot" style="animation-delay: 1s;"></div>
+                            </div>
+                            <span class="connection-label">HTTPS Request</span>
+                        </div>
+
+                        <!-- CDN Layer -->
+                        <div class="arch-layer" id="cdn-layer">
+                            <h4 class="layer-title">CDN / Edge Network</h4>
+                            <div class="arch-components">
+                                <div class="arch-node arch-node-large" data-tooltip="AWS CloudFront - Global CDN with 450+ PoPs">
+                                    <i class="fab fa-aws" style="font-size: 3rem; color: #FF9900;"></i>
+                                    <span>CloudFront CDN</span>
+                                    <div class="node-badge">Edge Computing</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Animated Connection -->
+                        <div class="connection-line">
+                            <div class="data-flow">
+                                <div class="flow-dot"></div>
+                                <div class="flow-dot" style="animation-delay: 0.5s;"></div>
+                                <div class="flow-dot" style="animation-delay: 1s;"></div>
+                            </div>
+                            <span class="connection-label">SSR / API Routes</span>
+                        </div>
+
+                        <!-- Frontend Layer -->
+                        <div class="arch-layer" id="frontend-layer">
+                            <h4 class="layer-title">Frontend - Next.js / React</h4>
+                            <div class="arch-components">
+                                <div class="arch-node" data-tooltip="Next.js 14+ App Router with Server Components">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg" alt="Next.js" style="filter: invert(1);">
+                                    <span>Next.js</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="React 18+ with Concurrent Features">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" alt="React">
+                                    <span>React</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="TypeScript for Type Safety & Developer Experience">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" alt="TypeScript">
+                                    <span>TypeScript</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="OAuth 2.0 PKCE Handler - Secure Authentication Flow">
+                                    <i class="fas fa-key" style="font-size: 3rem; color: var(--primary);"></i>
+                                    <span>OAuth Handler</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Animated Connection -->
+                        <div class="connection-line">
+                            <div class="data-flow">
+                                <div class="flow-dot"></div>
+                                <div class="flow-dot" style="animation-delay: 0.5s;"></div>
+                                <div class="flow-dot" style="animation-delay: 1s;"></div>
+                            </div>
+                            <span class="connection-label">REST API / GraphQL</span>
+                        </div>
+
+                        <!-- Backend Layer -->
+                        <div class="arch-layer" id="backend-layer">
+                            <h4 class="layer-title">Backend - Node.js / Express</h4>
+                            <div class="arch-components">
+                                <div class="arch-node" data-tooltip="Node.js 20+ LTS Runtime Environment">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" alt="Node.js">
+                                    <span>Node.js</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="Express.js API Gateway with Middleware">
+                                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg" alt="Express" style="filter: invert(1);">
+                                    <span>Express</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="Authentication & Authorization Service">
+                                    <i class="fas fa-user-shield" style="font-size: 3rem; color: var(--success);"></i>
+                                    <span>Auth Service</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="Festival Data Aggregation & Management">
+                                    <i class="fas fa-music" style="font-size: 3rem; color: var(--secondary);"></i>
+                                    <span>Festival Service</span>
+                                </div>
+                                <div class="arch-node" data-tooltip="AI-Powered Itinerary Generation Engine">
+                                    <i class="fas fa-calendar-alt" style="font-size: 3rem; color: var(--warning);"></i>
+                                    <span>Itinerary Service</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Split Connections -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1rem 0;">
+                            <div class="connection-line">
+                                <div class="data-flow">
+                                    <div class="flow-dot"></div>
+                                    <div class="flow-dot" style="animation-delay: 0.5s;"></div>
+                                </div>
+                                <span class="connection-label">API Calls</span>
+                            </div>
+                            <div class="connection-line">
+                                <div class="data-flow">
+                                    <div class="flow-dot"></div>
+                                    <div class="flow-dot" style="animation-delay: 0.5s;"></div>
+                                </div>
+                                <span class="connection-label">Database Queries</span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Layer - Split into two sections -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <!-- External APIs -->
+                            <div class="arch-layer" id="external-layer">
+                                <h4 class="layer-title">External APIs</h4>
+                                <div class="arch-components">
+                                    <div class="arch-node" data-tooltip="Spotify Web API - User Listening History & Artist Data">
+                                        <img src="https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_Green.png" alt="Spotify" style="height: 2rem; width: auto; object-fit: contain;">
+                                        <span>Spotify API</span>
+                                        <div class="node-badge">OAuth 2.0</div>
+                                    </div>
+                                    <div class="arch-node" data-tooltip="EDMTrain API - Comprehensive Festival & Event Database">
+                                        <i class="fas fa-train" style="font-size: 3rem; color: var(--secondary);"></i>
+                                        <span>EDMTrain</span>
+                                    </div>
+                                    <div class="arch-node" data-tooltip="Resident Advisor - Electronic Music Events Platform">
+                                        <i class="fas fa-headphones" style="font-size: 3rem; color: var(--primary);"></i>
+                                        <span>Resident Advisor</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Layer -->
+                            <div class="arch-layer" id="data-layer">
+                                <h4 class="layer-title">Data Layer</h4>
+                                <div class="arch-components">
+                                    <div class="arch-node" data-tooltip="PostgreSQL 15+ - Primary Relational Database">
+                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" alt="PostgreSQL">
+                                        <span>PostgreSQL</span>
+                                        <div class="node-badge">Primary DB</div>
+                                    </div>
+                                    <div class="arch-node" data-tooltip="Redis - In-Memory Cache & Session Store">
+                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" alt="Redis">
+                                        <span>Redis Cache</span>
+                                        <div class="node-badge">Cache Layer</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security & Infrastructure Badge -->
+                        <div style="margin-top: 3rem; text-align: center;">
+                            <div class="arch-badge">
+                                <i class="fas fa-shield-alt"></i>
+                                <div>
+                                    <strong>Security & DevOps Layer</strong>
+                                    <div style="font-size: 0.85rem; margin-top: 0.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                                        <span data-tooltip="HashiCorp Vault & AWS Secrets Manager for Secret Management">
+                                            <i class="fas fa-vault"></i> AWS Secrets Manager
+                                        </span>
+                                        <span data-tooltip="Snyk & Trivy Security Scanning">
+                                            <i class="fas fa-bug"></i> Snyk/Trivy
+                                        </span>
+                                        <span data-tooltip="TLS 1.3 Encryption">
+                                            <i class="fas fa-lock"></i> TLS 1.3
+                                        </span>
+                                        <span data-tooltip="GitHub Actions CI/CD Pipeline">
+                                            <i class="fab fa-github"></i> GitHub Actions
+                                        </span>
+                                        <span data-tooltip="Docker Containerization">
+                                            <i class="fab fa-docker"></i> Docker
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="data-flow">
+                <div class="diagram-container">
+                    <div class="diagram-title">OAuth 2.0 PKCE Authentication Flow</div>
+                    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as Backend
+    participant S as Spotify API
+    participant D as Database
+    
+    U->>F: Click "Connect Spotify"
+    F->>F: Generate code_verifier & code_challenge
+    F->>S: Authorization Request
+    S->>U: Spotify Login Page
+    U->>S: Authorize App
+    S->>F: Authorization Code
+    F->>B: Send code + code_verifier
+    B->>S: Token Request
+    S->>B: Access + Refresh Tokens
+    B->>B: Encrypt tokens
+    B->>D: Store user + tokens
+    B->>F: HTTP-only cookie
+    F->>U: Authenticated Session
+                    </div>
+                </div>
+                
+                <div class="diagram-container">
+                    <div class="diagram-title">Itinerary Generation Flow</div>
+                    <div class="mermaid">
+graph LR
+    A[User Request] --> B[Fetch Spotify Top Artists]
+    B --> C[Query Festival Lineups]
+    C --> D[Artist Matching Algorithm]
+    D --> E[Conflict Detection]
+    E --> F[Priority Ranking]
+    F --> G[Schedule Optimization]
+    G --> H[Generate Itinerary]
+    H --> I[Cache Result]
+    I --> J[Return to User]
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="tech-stack">
+                <h3>Technology Stack</h3>
+                <div class="tech-stack">
+                    <div class="tech-card">
+                        <h4>Frontend Layer</h4>
+                        <ul>
+                            <li>Next.js 14+ (App Router)</li>
+                            <li>React 18+</li>
+                            <li>TypeScript</li>
+                            <li>Tailwind CSS</li>
+                            <li>SWR for data fetching</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tech-card">
+                        <h4>Backend Layer</h4>
+                        <ul>
+                            <li>Node.js 20+</li>
+                            <li>Express.js</li>
+                            <li>TypeScript</li>
+                            <li>Prisma ORM</li>
+                            <li>JWT Handling</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tech-card">
+                        <h4>Database Layer</h4>
+                        <ul>
+                            <li>PostgreSQL 15+</li>
+                            <li>Redis for caching</li>
+                            <li>Connection pooling</li>
+                            <li>Automated backups</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tech-card">
+                        <h4>AWS Infrastructure</h4>
+                        <ul>
+                            <li>Route 53 (DNS)</li>
+                            <li>CloudFront (CDN)</li>
+                            <li>S3 (Static Hosting)</li>
+                            <li>Application Load Balancer</li>
+                            <li>ECS/Fargate (Containers)</li>
+                            <li>RDS PostgreSQL</li>
+                            <li>ElastiCache Redis</li>
+                            <li>Secrets Manager</li>
+                            <li>CloudWatch</li>
+                            <li>WAF + Shield</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- API Section -->
+        <section class="section" id="api">
+            <div class="section-header">
+                <i class="fas fa-plug section-icon"></i>
+                <h2>API Endpoints</h2>
+            </div>
+            
+            <div class="accordion">
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>Authentication Endpoints</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">POST</span>
+                                <code>/api/auth/spotify/login</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/auth/spotify/login', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Initiates Spotify OAuth flow with PKCE</p>
+                        
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">GET</span>
+                                <code>/api/auth/spotify/callback</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/auth/spotify/callback', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Handles OAuth callback and exchanges authorization code for tokens</p>
+                        
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">POST</span>
+                                <code>/api/auth/logout</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/auth/logout', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted);">Invalidates session and clears authentication cookies</p>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>Festival Data Endpoints</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">GET</span>
+                                <code>/api/festivals</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/festivals', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Returns list of upcoming EDM festivals with filtering options</p>
+                        
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">GET</span>
+                                <code>/api/festivals/:id/lineup</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/festivals/:id/lineup', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted);">Retrieves complete lineup for a specific festival</p>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>Itinerary Endpoints</span>
+                        <i class="fas fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">POST</span>
+                                <code>/api/itinerary/generate</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/itinerary/generate', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Generates personalized itinerary based on user's Spotify data</p>
+                        
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">GET</span>
+                                <code>/api/itinerary/:festivalId</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/itinerary/:festivalId', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Retrieves saved itinerary for a specific festival</p>
+                        
+                        <div class="api-endpoint">
+                            <div>
+                                <span class="api-method">PUT</span>
+                                <code>/api/itinerary/:id</code>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard('/api/itinerary/:id', this)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p style="color: var(--text-muted);">Updates user's itinerary preferences</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Security Section -->
+        <section class="section" id="security">
+            <div class="section-header">
+                <i class="fas fa-lock section-icon"></i>
+                <h2>Security Architecture</h2>
+            </div>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle alert-icon"></i>
+                <div>
+                    <h4>Security-First Approach</h4>
+                    <p>All security measures are implemented following OWASP guidelines and industry best practices for authentication, data protection, and secure communication.</p>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Security Layer</th>
+                            <th>Implementation</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Authentication</strong></td>
+                            <td>OAuth 2.0 with PKCE</td>
+                            <td>Prevent authorization code interception attacks</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Session Management</strong></td>
+                            <td>HTTP-only, Secure, SameSite cookies</td>
+                            <td>Prevent XSS and CSRF attacks</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Token Storage</strong></td>
+                            <td>AES-256 encryption at rest</td>
+                            <td>Protect stored OAuth tokens</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Secrets Management</strong></td>
+                            <td>AWS Secrets Manager/HashiCorp Vault</td>
+                            <td>Centralized, audited secret access</td>
+                        </tr>
+                        <tr>
+                            <td><strong>API Security</strong></td>
+                            <td>Rate limiting, CORS, input validation</td>
+                            <td>Prevent abuse and injection attacks</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dependency Scanning</strong></td>
+                            <td>Snyk/Trivy automated scans</td>
+                            <td>Identify vulnerable dependencies</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Transport Security</strong></td>
+                            <td>TLS 1.3, HSTS headers</td>
+                            <td>Encrypt all data in transit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">Security Layer Implementation</div>
+                <div class="mermaid">
+graph TD
+    A[Incoming Request] --> B{TLS/HTTPS?}
+    B -->|No| C[Reject]
+    B -->|Yes| D[Rate Limiter]
+    D --> E{Rate OK?}
+    E -->|No| F[429 Error]
+    E -->|Yes| G[CORS Check]
+    G --> H{Valid Origin?}
+    H -->|No| I[403 Error]
+    H -->|Yes| J[Input Validation]
+    J --> K{Valid Input?}
+    K -->|No| L[400 Error]
+    K -->|Yes| M[Auth Check]
+    M --> N{Authenticated?}
+    N -->|No| O[401 Error]
+    N -->|Yes| P[Process Request]
+    P --> Q[Audit Log]
+    Q --> R[Return Response]
+                </div>
+            </div>
+        </section>
+        
+        <!-- Database Section -->
+        <section class="section" id="database">
+            <div class="section-header">
+                <i class="fas fa-database section-icon"></i>
+                <h2>Database Schema</h2>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">Entity Relationship Diagram</div>
+                <div class="mermaid">
+erDiagram
+    USER ||--o{ ITINERARY : creates
+    USER ||--o{ USER_ARTIST : has
+    FESTIVAL ||--o{ LINEUP : contains
+    FESTIVAL ||--o{ ITINERARY : "associated with"
+    LINEUP ||--o{ ITINERARY_ITEM : includes
+    ITINERARY ||--o{ ITINERARY_ITEM : contains
+    
+    USER {
+        uuid id PK
+        string spotify_id UK
+        string email
+        string display_name
+        text encrypted_access_token
+        text encrypted_refresh_token
+        timestamp token_expires_at
+    }
+    
+    FESTIVAL {
+        uuid id PK
+        string name
+        string location
+        date start_date
+        date end_date
+        string source
+    }
+    
+    ITINERARY {
+        uuid id PK
+        uuid user_id FK
+        uuid festival_id FK
+        string status
+        json preferences
+    }
+                </div>
+            </div>
+        </section>
+        
+        <!-- Deployment Section -->
+        <section class="section" id="deployment">
+            <div class="section-header">
+                <i class="fas fa-rocket section-icon"></i>
+                <h2>Deployment Architecture</h2>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">CI/CD Pipeline</div>
+                <div class="mermaid">
+graph LR
+    A[Git Push] --> B[GitHub Actions]
+    B --> C{Branch?}
+    C -->|main| D[Production Pipeline]
+    C -->|develop| E[Staging Pipeline]
+    
+    D --> F[Run Tests]
+    F --> G[Security Scan]
+    G --> H[Build]
+    H --> I[Deploy to S3]
+    H --> J[Deploy to ECS]
+    I --> K[Smoke Tests]
+    J --> K
+    K --> L{Pass?}
+    L -->|Yes| M[Success]
+    L -->|No| N[Rollback]
+                </div>
+            </div>
+            
+            <h3>Infrastructure Components</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Platform</th>
+                            <th>Configuration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Frontend Hosting</strong></td>
+                            <td>AWS S3 + CloudFront</td>
+                            <td>Auto-scaling, CDN, Edge Functions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backend Hosting</strong></td>
+                            <td>AWS ECS Fargate</td>
+                            <td>Container deployment, auto-scaling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database</strong></td>
+                            <td>AWS RDS PostgreSQL</td>
+                            <td>Automated backups, connection pooling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache</strong></td>
+                            <td>AWS ElastiCache Redis</td>
+                            <td>Session storage, API response caching</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Secrets</strong></td>
+                            <td>AWS Secrets Manager</td>
+                            <td>Encrypted secrets, automatic rotation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Load Balancer</strong></td>
+                            <td>AWS Application Load Balancer</td>
+                            <td>SSL termination, health checks, traffic distribution</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DNS & CDN</strong></td>
+                            <td>AWS Route 53 + CloudFront</td>
+                            <td>Global routing, edge caching</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Monitoring</strong></td>
+                            <td>AWS CloudWatch</td>
+                            <td>Logs, metrics, alarms</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Security</strong></td>
+                            <td>AWS WAF + Shield</td>
+                            <td>DDoS protection, web application firewall</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 3rem; text-align: center;">
+                <button class="cta-button" onclick="window.open('https://github.com', '_blank')">
+                    <i class="fas fa-code-branch"></i> View Repository
+                </button>
+                <button class="cta-button cta-button-secondary" onclick="window.print()">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+        </section>
+        
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <h3>🎵 Metricify</h3>
+            <p>Technical Documentation v1.0</p>
+            <p style="margin-top: 1rem; opacity: 0.7;">Built with DevSecOps excellence • Powered by Spotify • Designed for festival lovers</p>
+        </div>
+    </footer>
+    
+    <!-- Scroll to Top Button -->
+    <div class="scroll-top" id="scrollTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+    
+    <script>
+        // Defer Mermaid initialization until page load
+        window.addEventListener('load', () => {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ 
+                    startOnLoad: true,
+                    theme: 'dark',
+                    themeVariables: {
+                        primaryColor: '#0066FF',
+                        primaryTextColor: '#fff',
+                        primaryBorderColor: '#00D4FF',
+                        lineColor: '#0066FF',
+                        secondaryColor: '#00D4FF',
+                        tertiaryColor: '#1A1F3A'
+                    }
+                });
+            }
+        });
+        
+        // Performance: Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Performance: RequestAnimationFrame throttle
+        function rafThrottle(func) {
+            let rafId = null;
+            return function(...args) {
+                if (rafId) return;
+                rafId = requestAnimationFrame(() => {
+                    func(...args);
+                    rafId = null;
+                });
+            };
+        }
+        
+        // Navbar scroll effect - optimized with RAF
+        const navbar = document.getElementById('navbar');
+        const handleNavbarScroll = rafThrottle(() => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        window.addEventListener('scroll', handleNavbarScroll, { passive: true });
+        
+        // Progress bar - optimized with RAF
+        const progressBar = document.getElementById('progressBar');
+        const handleProgressScroll = rafThrottle(() => {
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollPercent = (scrollTop / (documentHeight - windowHeight)) * 100;
+            progressBar.style.width = scrollPercent + '%';
+        });
+        window.addEventListener('scroll', handleProgressScroll, { passive: true });
+        
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.section').forEach(section => {
+            observer.observe(section);
+        });
+        
+        // Tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+        
+        // Accordion functionality
+        const accordionHeaders = document.querySelectorAll('.accordion-header');
+        
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const accordionItem = header.parentElement;
+                const isActive = accordionItem.classList.contains('active');
+                
+                // Close all accordion items
+                document.querySelectorAll('.accordion-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Open clicked item if it wasn't active
+                if (!isActive) {
+                    accordionItem.classList.add('active');
+                }
+            });
+        });
+        
+        // Copy to clipboard
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.style.background = 'var(--success)';
+                button.style.borderColor = 'var(--success)';
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = '';
+                    button.style.borderColor = '';
+                }, 2000);
+            });
+        }
+        
+        // Mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navLinks = document.getElementById('navLinks');
+        
+        mobileMenuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            const icon = mobileMenuToggle.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+        
+        // Close mobile menu when link is clicked
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                mobileMenuToggle.querySelector('i').classList.add('fa-bars');
+                mobileMenuToggle.querySelector('i').classList.remove('fa-times');
+            });
+        });
+        
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offset = 80;
+                    const targetPosition = target.offsetTop - offset;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Scroll to top button - optimized with RAF
+        const scrollTop = document.getElementById('scrollTop');
+        const handleScrollTopVisibility = rafThrottle(() => {
+            if (window.scrollY > 500) {
+                scrollTop.classList.add('visible');
+            } else {
+                scrollTop.classList.remove('visible');
+            }
+        });
+        window.addEventListener('scroll', handleScrollTopVisibility, { passive: true });
+        
+        scrollTop.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Theme toggle (placeholder - can be expanded)
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            alert('Theme toggle feature coming soon!');
+        });
+
+        // Interactive Architecture Diagram
+        const archNodes = document.querySelectorAll('.arch-node');
+        
+        archNodes.forEach(node => {
+            node.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Get the component name
+                const componentName = this.querySelector('span').textContent;
+                
+                // Create a ripple effect
+                const ripple = document.createElement('div');
+                ripple.style.position = 'absolute';
+                ripple.style.width = '100%';
+                ripple.style.height = '100%';
+                ripple.style.top = '0';
+                ripple.style.left = '0';
+                ripple.style.background = 'radial-gradient(circle, rgba(0, 102, 255, 0.5) 0%, transparent 70%)';
+                ripple.style.borderRadius = '12px';
+                ripple.style.pointerEvents = 'none';
+                ripple.style.animation = 'ripple 0.6s ease-out';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+                
+                // Show component info
+                showComponentInfo(componentName, this.dataset.tooltip);
+            });
+        });
+
+        // Add ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                from {
+                    transform: scale(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        function showComponentInfo(name, description) {
+            // Create modal
+            const existingModal = document.getElementById('component-modal');
+            if (existingModal) existingModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'component-modal';
+            modal.style.position = 'fixed';
+            modal.style.top = '50%';
+            modal.style.left = '50%';
+            modal.style.transform = 'translate(-50%, -50%) scale(0.9)';
+            modal.style.background = 'var(--card-bg)';
+            modal.style.border = '2px solid var(--primary)';
+            modal.style.borderRadius = '16px';
+            modal.style.padding = '2rem';
+            modal.style.maxWidth = '500px';
+            modal.style.width = '90%';
+            modal.style.zIndex = '10000';
+            modal.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.7)';
+            modal.style.opacity = '0';
+            modal.style.transition = 'all 0.3s ease';
+            
+            modal.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <h3 style="color: var(--primary); margin: 0;">${name}</h3>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; padding: 0; width: 30px; height: 30px;">×</button>
+                </div>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${description || 'Core component of the Metricify architecture'}</p>
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="this.parentElement.parentElement.remove()" style="flex: 1; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Got it</button>
+                    <button onclick="alert('Documentation link would open here')" style="flex: 1; padding: 0.75rem; background: transparent; color: var(--primary); border: 2px solid var(--primary); border-radius: 8px; cursor: pointer; font-weight: 600;">Learn More</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Animate in
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 10);
+            
+            // Close on outside click
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+            overlay.style.zIndex = '9999';
+            overlay.style.backdropFilter = 'blur(5px)';
+            overlay.onclick = () => {
+                modal.remove();
+                overlay.remove();
+            };
+            
+            document.body.insertBefore(overlay, modal);
+        }
+
+        // Add pulse animation to layers on hover
+        const archLayers = document.querySelectorAll('.arch-layer');
+        archLayers.forEach(layer => {
+            layer.addEventListener('mouseenter', function() {
+                this.style.animation = 'pulse 0.5s ease';
+            });
+            
+            layer.addEventListener('animationend', function() {
+                this.style.animation = '';
+            });
+        });
+
+        // Add pulse keyframes
+        const pulseStyle = document.createElement('style');
+        pulseStyle.textContent = `
+            @keyframes pulse {
+                0%, 100% {
+                    transform: translateY(0) scale(1);
+                }
+                50% {
+                    transform: translateY(-2px) scale(1.01);
+                }
+            }
+        `;
+        document.head.appendChild(pulseStyle);
+    </script>
+</body>
+</html>
